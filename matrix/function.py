@@ -52,7 +52,7 @@ def column_swap(matrix, i: int, j: int):
     return matrix
 
 
-def row_time(matrix, i: int, k: float):
+def row_mul(matrix, i: int, k: float):
     if i > matrix.rows:
         raise Exception('{}-th row row out of matrix'.format(i))
     
@@ -61,7 +61,7 @@ def row_time(matrix, i: int, k: float):
     return matrix
 
 
-def column_time(matrix, i: int, k: float):
+def column_mul(matrix, i: int, k: float):
     if i > matrix.columns:
         raise Exception('{}-th column out of matrix'.format(i))
     

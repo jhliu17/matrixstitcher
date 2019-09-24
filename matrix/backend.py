@@ -31,6 +31,7 @@ class Matrix:
             self.rows, self.columns = self.matrix.shape[0], 1
             self.matrix = np.reshape(self.matrix, [self.rows, self.columns])
         self.square = True if self.rows == self.columns else False
+        self.shape = (self.rows, self.columns)
 
     def refresh(self):
         self.matrix = np.array(self._origin_data, dtype=self._dtype)
@@ -59,11 +60,11 @@ class Matrix:
     def column_swap(*args):
         return F.column_swap(*args)
 
-    def row_time(*args):
-        return F.row_time(*args)
+    def row_mul(*args):
+        return F.row_mul(*args)
 
-    def column_time(*args):
-        return F.column_time(*args)
+    def column_mul(*args):
+        return F.column_mul(*args)
 
     def __repr__(self):
         return self.matrix.__repr__()
@@ -128,15 +129,19 @@ def transform_pipeline(matrix: Matrix, pipeline, display=False):
     A list or tuple of tranforms to apply on the input matrix.
     '''
     assert isinstance(pipeline, (list, tuple))
+    from matrix.transform import Transform
     if display:
-        print('-> Origin matrix: {}'.format(matrix))
+        print('-> Origin matrix:\n\t{}'.format(matrix))
         for idx, p in enumerate(pipeline, 1):
+            assert isinstance(p, Transform)
             matrix = p(matrix)
-            print('-> Stage {}: {}'.format(idx, matrix))
+            transform_template = '{}{}'.format(p.__name__, p._args)
+            print('-> Stage {}, {}:\n\t{}'.format(idx, transform_template, matrix))
     else:
         for p in pipeline:
+            assert isinstance(p, Transform)
             matrix = p(matrix)
-        return matrix
+    return matrix
 
 
 def copy_matrix(matrix: Matrix):
