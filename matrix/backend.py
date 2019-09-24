@@ -156,9 +156,12 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False):
     '''
     assert isinstance(pipeline, (list, tuple))
     from matrix.transform import Transform
+    done_pipeline = len(matrix._elementary_tape[0] + matrix._elementary_tape[1])
+
     if display:
-        print('-> Origin matrix:\n{}'.format(matrix))
-        for idx, p in enumerate(pipeline, 1):
+        if done_pipeline == 0:
+            print('-> Origin matrix:\n{}'.format(matrix))
+        for idx, p in enumerate(pipeline, done_pipeline+1):
             assert isinstance(p, Transform)
             matrix = p(matrix)
             transform_template = '{}{}'.format(p.__class__.__name__, 
