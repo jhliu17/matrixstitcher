@@ -150,19 +150,20 @@ def slice_mechanism(key: slice):
     return slice(start, stop, step)
 
 
-def transform_pipeline(matrix: Matrix, pipeline, display=False):
+def apply_pipeline(matrix: Matrix, pipeline, display=False):
     '''
     A list or tuple of tranforms to apply on the input matrix.
     '''
     assert isinstance(pipeline, (list, tuple))
     from matrix.transform import Transform
     if display:
-        print('-> Origin matrix:\n\t{}'.format(matrix))
+        print('-> Origin matrix:\n{}'.format(matrix))
         for idx, p in enumerate(pipeline, 1):
             assert isinstance(p, Transform)
             matrix = p(matrix)
-            transform_template = '{}{}'.format(p.__name__, p._args)
-            print('-> Stage {}, {}:\n\t{}'.format(idx, transform_template, matrix))
+            transform_template = '{}{}'.format(p.__class__.__name__, 
+                                        p._args + tuple('{}={}'.format(i, p._kwargs[i]) for i in p._kwargs))
+            print('-> Stage {}, {}:\n{}'.format(idx, transform_template, matrix))
     else:
         for p in pipeline:
             assert isinstance(p, Transform)
