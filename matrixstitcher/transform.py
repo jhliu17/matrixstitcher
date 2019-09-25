@@ -1,7 +1,7 @@
 import numpy as np
-import matrix.backend as B
-import matrix.function as F
-from matrix.backend import Matrix
+import matrixstitcher.backend as B
+import matrixstitcher.function as F
+from matrixstitcher.backend import Matrix
 
 
 __support_tape__ = [
@@ -16,10 +16,12 @@ class Transform:
         self._kwargs = kwargs
     
     def __call__(self, matrix):
-        newmatrix = B.copy_matrix(matrix)
         if self._method in __support_tape__:
+            new_matrix = B.copy(matrix)
             self.add_tape(matrix)
-        return newmatrix
+        else:
+            new_matrix = B.copy(matrix, causal=False)
+        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
 
     def add_tape(self, matrix: Matrix):
         matrix.update_tape(self._method, *self._args, **self._kwargs)
@@ -30,72 +32,50 @@ class RowTransform(Transform):
         super().__init__(*args, **kwargs)
         self._method = 'row_transform'
     
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
-
 
 class ColumnTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._method = 'column_transform'
     
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
-
 
 class RowSwap(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._method = 'row_swap'
-    
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
 
 
 class ColumnSwap(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._method = 'column_swap'
-    
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
 
 
 class RowMul(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._method = 'row_mul'
-    
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
 
 
 class ColumnMul(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._method = 'column_mul'
-    
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
 
 
 class Transpose(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._method = 'transpose'
-    
-    def __call__(self, matrix):
-        new_matrix = super().__call__(matrix)
-        return getattr(F, self._method)(new_matrix, *self._args, **self._kwargs)
+
+
+class Inverse(Transform):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._method = 'inverse'
+
+
+class Rank(Transform):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._method = 'rank'

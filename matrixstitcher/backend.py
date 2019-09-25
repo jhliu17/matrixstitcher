@@ -1,5 +1,5 @@
 import numpy as np
-import matrix.function as F 
+import matrixstitcher.function as F 
 from functools import reduce
 
 
@@ -38,6 +38,7 @@ class Matrix:
 
         # handy-copy
         self._elementary_tape = [[], []]
+        self._elementary_hist = []
 
     def refresh(self):
         self.matrix = np.array(self._origin_data, dtype=self._dtype)
@@ -118,7 +119,7 @@ class Matrix:
         return F.transpose(*args)
 
     def update_tape(self, transform_method, *args, **kwargs):
-        from matrix.transform import __support_tape__
+        from matrixstitcher.transform import __support_tape__
         assert transform_method in __support_tape__
 
         direction = 'row' if 'row' in transform_method.lower() else 'column'
@@ -127,17 +128,49 @@ class Matrix:
         elementary = Matrix(np.eye(size), dtype=self._dtype)
         elementary = getattr(F, transform_method)(elementary, *args, **kwargs)
         self._elementary_tape[self._direction[direction]].append(elementary)
+        method_name = ''.join([i[0].upper() + i[1:] for i in transform_method.split('_')])
+        self._elementary_hist.append(transform_template(method_name, args, kwargs))
 
     def get_elementary(self):
         return self._elementary_tape[0][::-1], self._elementary_tape[1]
 
-    def forward(self):
-        foward_tape = self._elementary_tape[0][::-1] + [self] + self._elementary_tape[1]
-        return reduce(lambda x, y: x * y, foward_tape)
-
+    def forward(self, causal=True, display=False):
+        left_tape, right_tape = self.get_elementary()
+        
+        if not display:
+            foward_tape = left_tape + [self] + right_tape
+            if len(foward_tape) > 1:
+                result = reduce(lambda x, y: x * y, foward_tape)
+            else:
+                result = foward_tape[0]
+        else:
+            i, j = 0, 0
+            result = self
+            print('-> Origin matrix:\n{}\n'.format(result))
+            for idx, method in enumerate(self._elementary_hist, 1):
+                if 'row' in method.lower():
+                    result = self._elementary_tape[self._direction['row']][i] * result
+                    i += 1
+                elif 'column' in method.lower():
+                    result = result * self._elementary_tape[self._direction['column']][j]
+                    j += 1
+                else:
+                    raise Exception('An illegal method in elementary tape hist')
+                print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
+        
+        # handy copy
+        if causal:
+            new_matrix = copy(self)
+            new_matrix.matrix = result.matrix
+            result = new_matrix
+        return result
         
 
 
+    def apply(self, *args, **kwargs):
+        return apply_pipeline(self, *args, **kwargs)
+
+        
 def index_mechanism(*key):
     key = tuple(i - 1 if not isinstance(i, slice) else slice_mechanism(i) for i in key)
     return key
@@ -150,23 +183,30 @@ def slice_mechanism(key: slice):
     return slice(start, stop, step)
 
 
+def transform_template(p, _args, _kwargs):
+    template = '{}{}'.format(p, _args + tuple('{}={}'.format(i, _kwargs[i]) for i in _kwargs))
+    return template
+
+
 def apply_pipeline(matrix: Matrix, pipeline, display=False):
     '''
     A list or tuple of tranforms to apply on the input matrix.
     '''
-    assert isinstance(pipeline, (list, tuple))
-    from matrix.transform import Transform
+    from matrixstitcher.transform import Transform
+    assert isinstance(pipeline, (list, tuple, Transform))
     done_pipeline = len(matrix._elementary_tape[0] + matrix._elementary_tape[1])
+    
+    if isinstance(pipeline, Transform):
+        pipeline = [pipeline]
 
     if display:
         if done_pipeline == 0:
-            print('-> Origin matrix:\n{}'.format(matrix))
+            print('-> Origin matrix:\n{}\n'.format(matrix))
         for idx, p in enumerate(pipeline, done_pipeline+1):
             assert isinstance(p, Transform)
             matrix = p(matrix)
-            transform_template = '{}{}'.format(p.__class__.__name__, 
-                                        p._args + tuple('{}={}'.format(i, p._kwargs[i]) for i in p._kwargs))
-            print('-> Stage {}, {}:\n{}'.format(idx, transform_template, matrix))
+            transform_template_ = transform_template(p.__class__.__name__, p._args, p._kwargs)
+            print('-> Stage {}, {}:\n{}\n'.format(idx, transform_template_, matrix))
     else:
         for p in pipeline:
             assert isinstance(p, Transform)
@@ -174,7 +214,9 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False):
     return matrix
 
 
-def copy_matrix(matrix: Matrix):
+def copy(matrix: Matrix, causal=True):
     new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
-    new_matrix._elementary_tape = matrix._elementary_tape
+    if causal:
+        new_matrix._elementary_tape = matrix._elementary_tape
+        new_matrix._elementary_hist = matrix._elementary_hist
     return new_matrix

@@ -1,5 +1,5 @@
 import numpy as np 
-import matrix.backend as B 
+import matrixstitcher.backend as B 
 
 
 def row_transform(matrix, i: int, k: float, j: int):
@@ -73,3 +73,20 @@ def column_mul(matrix, i: int, k: float):
 def transpose(matrix):
     matrix.matrix = matrix.matrix.transpose()
     return matrix
+
+
+def inverse(matrix):
+    if matrix.square:
+        try:
+            inv = np.linalg.inv(matrix.matrix)
+        except:
+            raise Exception('Matrix is noninvertible')
+        else:
+            matrix.matrix = inv
+    else:
+        raise Exception('Unsquare matrix is noninvertible')
+    return matrix
+
+
+def rank(matrix):
+    return np.linalg.matrix_rank(matrix.matrix)
