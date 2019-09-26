@@ -6,7 +6,7 @@ from matrixstitcher.backend import Matrix
 
 __support_tape__ = [
     'row_transform', 'column_transform', 'row_swap', 'column_swap',
-    'row_mul', 'column_mul', 'lu_factorization'
+    'row_mul', 'column_mul'
 ]
 
 
@@ -14,9 +14,11 @@ class Transform:
     def __init__(self, *args, **kwargs):
         self._args = args
         self._kwargs = kwargs
+        self.method = None
+        self.tape = False
     
     def build(self, matrix):
-        if self._method in __support_tape__:
+        if self.tape or self.method in __support_tape__:
             new_matrix = B.copy(matrix)
             self.add_tape(matrix)
         else:
@@ -24,103 +26,104 @@ class Transform:
         return new_matrix
 
     def add_tape(self, matrix: Matrix):
-        matrix.update_tape(self._method, *self._args, **self._kwargs)
+        matrix.update_tape(self.method, *self._args, **self._kwargs)
 
 
 class RowTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'row_transform'
+        self.method = 'row_transform'
     
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
     
 
 class ColumnTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'column_transform'
+        self.method = 'column_transform'
     
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class RowSwap(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'row_swap'
+        self.method = 'row_swap'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class ColumnSwap(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'column_swap'
+        self.method = 'column_swap'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class RowMul(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'row_mul'
+        self.method = 'row_mul'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class ColumnMul(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'column_mul'
+        self.method = 'column_mul'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class Transpose(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'transpose'
+        self.method = 'transpose'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class Inverse(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'inverse'
+        self.method = 'inverse'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class Rank(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'rank'
+        self.method = 'rank'
 
     def __call__(self, matrix):
         matrix = super().build(matrix)
-        return getattr(F, self._method)(matrix, *self._args, **self._kwargs)
+        return getattr(F, self.method)(matrix, *self._args, **self._kwargs)
 
 
 class LUFactorization(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._method = 'lu_factorization'
+        self.method = 'lu_factorization'
+        self.tape = True
     
     def __call__(self, matrix):
         matrix = super().build(matrix)

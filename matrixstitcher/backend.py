@@ -125,8 +125,6 @@ class Matrix:
         return F.transpose(*args)
 
     def update_tape(self, transform_method, *args, **kwargs):
-        from matrixstitcher.transform import __support_tape__
-        assert transform_method in __support_tape__
         determined = transform_method.split('_')[0].lower()
 
         if 'row' in determined or 'column' in determined:
