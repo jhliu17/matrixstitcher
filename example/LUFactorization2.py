@@ -1,6 +1,6 @@
 import numpy as np
 import matrixstitcher as mats 
-from matrixstitcher.transform import *
+from matrixstitcher.transform import LUFactorization
 
 
 # Edit your matrix to be factorized, here are two examples
@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     print('\n', '*'*80, sep='')
     print('Execution Path:')
-    reduced_row_echelon_form = A.forward(display=display_execution)
+    result = A.forward(display=display_execution)
     
     print('\n', '*'*80, sep='')
     print('The LU Factorization result:')

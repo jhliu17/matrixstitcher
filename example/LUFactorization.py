@@ -8,6 +8,7 @@ from matrixstitcher.transform import *
 A = [[1, 2, -3, 4], [4, 8, 12, -8], [2, 3, 2, 1], [-3, -1, 1, -4]]
 display_execution = True
 
+
 def lu_factorization(input_matrix):
     if not input_matrix.square:
         raise Exception('Plz input a square matrix')
