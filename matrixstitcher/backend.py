@@ -7,7 +7,7 @@ class Matrix:
     '''
     A base object of matrix
     '''
-    def __init__(self, data, dtype=np.float):
+    def __init__(self, data, dtype=None):
         try:
             assert isinstance(data, (list, tuple, np.ndarray))
         except:
@@ -16,7 +16,10 @@ class Matrix:
             if isinstance(data, np.ndarray):
                 self.matrix = data
             else:
-                self.matrix = np.array(data, dtype=dtype)
+                if dtype is not None:
+                    self.matrix = np.array(data, dtype=dtype)
+                else:
+                    self.matrix = np.array(data)
         except:
             raise Exception('data can not be converted to matrix')
         try:
@@ -24,9 +27,9 @@ class Matrix:
         except:
             raise Exception('only support 1 dimensional vector or 2-dimensional matrix not support tensor')
 
-        # auto-determined
+        # Auto determined
         self._origin_data = data
-        self._dtype = dtype
+        self._dtype = self.matrix.dtype
         if len(self.matrix.shape) == 2:
             self.rows, self.columns = self.matrix.shape
         else:
@@ -36,13 +39,20 @@ class Matrix:
         self.shape = (self.rows, self.columns)
         self._direction = {'row': 0, 'column': 1}
 
-        # handy-copy
+        # Manual operation
+        '''
+        The elementary tape records the whole path of applied elementary transformations on this matrix where
+        two lists include applied row and column transform in time ordering respectively. All the sequence matrix
+        derive from this matrix will share the elementary tape and hist and this behavior can be controled by causal
+        parameter.
+        '''
         self._elementary_tape = [[], []]
         self._elementary_hist = []
 
     def refresh(self):
         self.matrix = np.array(self._origin_data, dtype=self._dtype)
         self._elementary_tape = [[], []]
+        self._elementary_hist = []
 
     def get_origin(self):
         return np.array(self._origin_data, dtype=self._dtype)
@@ -54,24 +64,6 @@ class Matrix:
         self.matrix = self.matrix.reshape(shape)
         self.rows, self.columns = self.matrix.shape
         return self.matrix
-
-    def row_transform(*args):
-        return F.row_transform(*args)
-
-    def column_transform(*args):
-        return F.column_transform(*args)
-
-    def row_swap(*args):
-        return F.row_swap(*args)
-
-    def column_swap(*args):
-        return F.column_swap(*args)
-
-    def row_mul(*args):
-        return F.row_mul(*args)
-
-    def column_mul(*args):
-        return F.column_mul(*args)
 
     def __repr__(self):
         return self.matrix.__repr__()
@@ -93,8 +85,8 @@ class Matrix:
             result = self.matrix + other.matrix
             return Matrix(result, dtype=result.dtype)
         else:
-            result = self.matrix + Matrix(other)
-            return Matrix(result, dtype=result.dtype)
+            result = self + Matrix(other)
+            return result
     
     def __mul__(self, other):
         if isinstance(other, Matrix):
@@ -111,8 +103,22 @@ class Matrix:
             result = self.matrix - other.matrix
             return Matrix(result, dtype=result.dtype)
         else:
-            result = self.matrix - Matrix(other)
+            result = self - Matrix(other)
+            return result
+
+    def __truediv__(self, other):
+        if isinstance(other, Matrix):
+            result = self.matrix / other.matrix
             return Matrix(result, dtype=result.dtype)
+        else:
+            result = self / Matrix(other)
+            return result
+
+    def to_scalar(self):
+        if self.rows * self.columns == 1:
+            return float(self.matrix)
+        else:
+            raise Exception('({}, {}) matrix can not be converted to a scalar'.format(self.rows, self.columns))
 
     @property
     def T(*args):
@@ -121,15 +127,17 @@ class Matrix:
     def update_tape(self, transform_method, *args, **kwargs):
         from matrixstitcher.transform import __support_tape__
         assert transform_method in __support_tape__
+        determined = transform_method.split('_')[0].lower()
 
-        direction = 'row' if 'row' in transform_method.lower() else 'column'
-        size = self.shape[self._direction[direction]]
+        if 'row' in determined or 'column' in determined:
+            direction = 'row' if 'row' in determined else 'column'
+            size = self.shape[self._direction[direction]]
 
-        elementary = Matrix(np.eye(size), dtype=self._dtype)
-        elementary = getattr(F, transform_method)(elementary, *args, **kwargs)
-        self._elementary_tape[self._direction[direction]].append(elementary)
-        method_name = ''.join([i[0].upper() + i[1:] for i in transform_method.split('_')])
-        self._elementary_hist.append(transform_template(method_name, args, kwargs))
+            elementary = Matrix(np.eye(size), dtype=self._dtype)
+            elementary = getattr(F, transform_method)(elementary, *args, **kwargs)
+            self._elementary_tape[self._direction[direction]].append(elementary)
+            method_name = ''.join([i[0].upper() + i[1:] for i in transform_method.split('_')])
+            self._elementary_hist.append(transform_template(method_name, args, kwargs))
 
     def get_elementary(self):
         return self._elementary_tape[0][::-1], self._elementary_tape[1]
@@ -158,17 +166,35 @@ class Matrix:
                     raise Exception('An illegal method in elementary tape hist')
                 print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
         
-        # handy copy
+        # Manual operation
         if causal:
             new_matrix = copy(self)
             new_matrix.matrix = result.matrix
             result = new_matrix
+
         return result
         
-
-
     def apply(self, *args, **kwargs):
         return apply_pipeline(self, *args, **kwargs)
+
+    # have been deprecated
+    def row_transform(*args):
+        return F.row_transform(*args)
+
+    def column_transform(*args):
+        return F.column_transform(*args)
+
+    def row_swap(*args):
+        return F.row_swap(*args)
+
+    def column_swap(*args):
+        return F.column_swap(*args)
+
+    def row_mul(*args):
+        return F.row_mul(*args)
+
+    def column_mul(*args):
+        return F.column_mul(*args)
 
         
 def index_mechanism(*key):
@@ -216,6 +242,8 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False):
 
 def copy(matrix: Matrix, causal=True):
     new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
+
+    # Manual operation
     if causal:
         new_matrix._elementary_tape = matrix._elementary_tape
         new_matrix._elementary_hist = matrix._elementary_hist
