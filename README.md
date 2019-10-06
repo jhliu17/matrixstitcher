@@ -13,7 +13,7 @@ import matrixstitcher as mats
 from matrixstitcher.transform import LUFactorization
 
 # you can define matrix using int, float, list, 
-tuple and numpy array
+# tuple and numpy array
 A = [[1, 2, -3, 4], 
      [4, 8, 12, -8], 
      [2, 3, 2, 1], 
