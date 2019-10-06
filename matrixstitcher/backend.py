@@ -7,15 +7,18 @@ class Matrix:
     '''
     A base object of matrix
     '''
-    def __init__(self, data, dtype=None):
+    def __init__(self, data, dtype=np.float):
         try:
-            assert isinstance(data, (list, tuple, np.ndarray))
+            assert isinstance(data, (list, tuple, np.ndarray, int, float))
         except:
             raise Exception('data must be a list or tuple')
         try:
             if isinstance(data, np.ndarray):
                 self.matrix = data
             else:
+                if isinstance(data, (float, int)):
+                    data = [data]
+                    
                 if dtype is not None:
                     self.matrix = np.array(data, dtype=dtype)
                 else:
@@ -87,6 +90,9 @@ class Matrix:
         else:
             result = self + Matrix(other)
             return result
+
+    def __radd__(self, other):
+        return self.__add__(other)
     
     def __mul__(self, other):
         if isinstance(other, Matrix):
@@ -97,6 +103,9 @@ class Matrix:
             return Matrix(result, dtype=result.dtype)
         else:
             raise Exception('no defination')
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
     
     def __sub__(self, other):
         if isinstance(other, Matrix):
@@ -105,6 +114,9 @@ class Matrix:
         else:
             result = self - Matrix(other)
             return result
+    
+    def __rsub__(self, other):
+        return -1 * (self.__sub__(other))
 
     def __truediv__(self, other):
         if isinstance(other, Matrix):
@@ -121,21 +133,24 @@ class Matrix:
             raise Exception('({}, {}) matrix can not be converted to a scalar'.format(self.rows, self.columns))
 
     @property
-    def T(*args):
-        return F.transpose(*args)
+    def T(self):
+        matrix = copy(self, causal=False)
+        return F.transpose(matrix)
 
     def update_tape(self, transform_method, *args, **kwargs):
-        determined = transform_method.split('_')[0].lower()
+        from matrixstitcher.transform import __support_tape__
+        
+        if transform_method in __support_tape__:
+            determined = transform_method.split('_')[0].lower()
+            if 'row' in determined or 'column' in determined:
+                direction = 'row' if 'row' in determined else 'column'
+                size = self.shape[self._direction[direction]]
 
-        if 'row' in determined or 'column' in determined:
-            direction = 'row' if 'row' in determined else 'column'
-            size = self.shape[self._direction[direction]]
-
-            elementary = Matrix(np.eye(size), dtype=self._dtype)
-            elementary = getattr(F, transform_method)(elementary, *args, **kwargs)
-            self._elementary_tape[self._direction[direction]].append(elementary)
-            method_name = ''.join([i[0].upper() + i[1:] for i in transform_method.split('_')])
-            self._elementary_hist.append(transform_template(method_name, args, kwargs))
+                elementary = Matrix(np.eye(size), dtype=self._dtype)
+                elementary = getattr(F, transform_method)(elementary, *args, **kwargs)
+                self._elementary_tape[self._direction[direction]].append(elementary)
+                method_name = ''.join([i[0].upper() + i[1:] for i in transform_method.split('_')])
+                self._elementary_hist.append(transform_template(method_name, args, kwargs))
 
     def get_elementary(self):
         return self._elementary_tape[0][::-1], self._elementary_tape[1]
@@ -161,7 +176,7 @@ class Matrix:
                     result = result * self._elementary_tape[self._direction['column']][j]
                     j += 1
                 else:
-                    raise Exception('An illegal method in elementary tape hist')
+                    raise Exception('An illegal method in the elementary tape history')
                 print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
         
         # Manual operation
@@ -176,23 +191,23 @@ class Matrix:
         return apply_pipeline(self, *args, **kwargs)
 
     # have been deprecated
-    def row_transform(*args):
-        return F.row_transform(*args)
+    # def row_transform(*args):
+    #     return F.row_transform(*args)
 
-    def column_transform(*args):
-        return F.column_transform(*args)
+    # def column_transform(*args):
+    #     return F.column_transform(*args)
 
-    def row_swap(*args):
-        return F.row_swap(*args)
+    # def row_swap(*args):
+    #     return F.row_swap(*args)
 
-    def column_swap(*args):
-        return F.column_swap(*args)
+    # def column_swap(*args):
+    #     return F.column_swap(*args)
 
-    def row_mul(*args):
-        return F.row_mul(*args)
+    # def row_mul(*args):
+    #     return F.row_mul(*args)
 
-    def column_mul(*args):
-        return F.column_mul(*args)
+    # def column_mul(*args):
+    #     return F.column_mul(*args)
 
         
 def index_mechanism(*key):

@@ -1,4 +1,5 @@
 import numpy as np
+from functools import wraps
 import matrixstitcher.backend as B
 import matrixstitcher.function as F
 from matrixstitcher.backend import Matrix
@@ -7,7 +8,7 @@ from matrixstitcher.backend import Matrix
 __support_tape__ = [
     'row_transform', 'column_transform', 'row_swap', 'column_swap',
     'row_mul', 'column_mul'
-]
+] # the provided elementary transformations
 
 
 class Transform:
@@ -26,7 +27,8 @@ class Transform:
         return new_matrix
 
     def add_tape(self, matrix: Matrix):
-        matrix.update_tape(self.method, *self._args, **self._kwargs)
+        if self.method is not None:
+            matrix.update_tape(self.method, *self._args, **self._kwargs)
 
 
 class RowTransform(Transform):
