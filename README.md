@@ -24,7 +24,7 @@ P, L, U = LUFactorization()(A) # apply LU Factorization on matrix A and get the 
 
 # show the transformations applied on the matrix A
 print('Execution Path:')
-result = A.forward(display=display_execution)
+result = A.forward(display=True)
 ```
 Here is the execution result:
 ```
