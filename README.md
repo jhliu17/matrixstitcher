@@ -1,11 +1,11 @@
 # Matrix Stitcher (under development)
 
-A matrix wrapper of numpy for educational purposes in which combine the advantage of eager and lazy execution. It run dynamically and automatically track your elementary transformations applied on the origin matrix.
+A numpy wrapper for learning matrix analysis that combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your elementary transformations applied on the origin matrix.
 
 - Intuitive implementation for educational purposes 
 - Index from 1 which is consistent with the mathematical declaration
 - Dynamicaly track the elementary transformations applied on the orgin matrix
-- Easily extend your operation
+- Easily extend your operations
 
 ## Quick Guide
 ```python
