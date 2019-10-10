@@ -1,10 +1,10 @@
 # Matrix Stitcher (under development)
 
-A matrix wrapper of numpy for educational purposes in which combine the advantage of eager and lazy execution. It run dynamically and automatically trace your elementary transformations on the origin matrix.
+A matrix wrapper of numpy for educational purposes in which combine the advantage of eager and lazy execution. It run dynamically and automatically track your elementary transformations applied on the origin matrix.
 
 - Intuitive implementation for educational purposes 
-- Index from 1 corresponding to the mathematical declaration
-- Dynamicaly trace the elementary transformations on the orgin matrix
+- Index from 1 which is consistent with the mathematical declaration
+- Dynamicaly track the elementary transformations applied on the orgin matrix
 - Easily extend your operation
 
 ## Quick Guide
@@ -26,8 +26,8 @@ P, L, U = LUFactorization()(A) # apply LU Factorization on matrix A and get the 
 print('Execution Path:')
 result = A.forward(display=display_execution)
 ```
+Here is the execution result:
 ```
-# Here is the result
 Execution Path:
 
 -> Origin matrix:
