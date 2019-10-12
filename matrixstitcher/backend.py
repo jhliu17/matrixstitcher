@@ -190,6 +190,11 @@ class Matrix:
     def apply(self, *args, **kwargs):
         return apply_pipeline(self, *args, **kwargs)
 
+    def numpy(self):
+        if 1 in (self.rows, self.columns):
+            return self.matrix.reshape(-1)
+        else:
+            return self.matrix
     # have been deprecated
     # def row_transform(*args):
     #     return F.row_transform(*args)

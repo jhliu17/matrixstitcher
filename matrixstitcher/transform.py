@@ -18,13 +18,19 @@ class Transform:
         self.method = None
         self.tape = False
     
-    def build(self, matrix):
-        if self.tape or self.method in __support_tape__:
-            new_matrix = B.copy(matrix)
-            self.add_tape(matrix)
-        else:
-            new_matrix = B.copy(matrix, causal=False)
-        return new_matrix
+    def build(self, *matrixs):
+        return_matrix = []
+        for matrix in matrixs:
+            if self.tape or self.method in __support_tape__:
+                new_matrix = B.copy(matrix)
+                self.add_tape(matrix)
+            else:
+                new_matrix = B.copy(matrix, causal=False)
+            return_matrix.append(new_matrix)
+        if len(matrixs) > 1:
+            return return_matrix
+        else: 
+            return return_matrix[0]
 
     def add_tape(self, matrix: Matrix):
         if self.method is not None:
@@ -162,3 +168,23 @@ class LUFactorization(Transform):
         L = L + np.eye(L.rows)
         U = matrix
         return P, L, U
+
+
+class LeastSquareTech(Transform):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.method = 'least_square_tech'
+        self.tape = False
+        self.parameter = None
+        self.error = None
+    
+    def __call__(self, X, y):
+        X, y = super().build(X, y)
+        
+        self.parameter = Inverse()(X.T * X) * X.T * y
+        self.error = (self.predict(X) - y).T * (self.predict(X) - y)
+        return self.parameter, self.error
+
+    def predict(self, X):
+        X = super().build(X)
+        return X * self.parameter
