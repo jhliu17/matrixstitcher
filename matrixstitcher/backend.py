@@ -195,24 +195,6 @@ class Matrix:
             return self.matrix.reshape(-1)
         else:
             return self.matrix
-    # have been deprecated
-    # def row_transform(*args):
-    #     return F.row_transform(*args)
-
-    # def column_transform(*args):
-    #     return F.column_transform(*args)
-
-    # def row_swap(*args):
-    #     return F.row_swap(*args)
-
-    # def column_swap(*args):
-    #     return F.column_swap(*args)
-
-    # def row_mul(*args):
-    #     return F.row_mul(*args)
-
-    # def column_mul(*args):
-    #     return F.column_mul(*args)
 
         
 def index_mechanism(*key):
