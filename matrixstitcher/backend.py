@@ -49,13 +49,15 @@ class Matrix:
         derive from this matrix will share the elementary tape and hist and this behavior can be controled by causal
         parameter.
         '''
-        self._elementary_tape = [[], []]
-        self._elementary_hist = []
+        self.__elementary_tape = [[], []]
+        self.__tape = []
+        self.__tape_hist = []
 
     def refresh(self):
         self.matrix = np.array(self._origin_data, dtype=self._dtype)
-        self._elementary_tape = [[], []]
-        self._elementary_hist = []
+        self.__elementary_tape = [[], []]
+        self.__tape = []
+        self.__tape_hist = []
 
     def get_origin(self):
         return np.array(self._origin_data, dtype=self._dtype)
@@ -74,9 +76,8 @@ class Matrix:
     def __getitem__(self, key):
         key = index_mechanism(*key)
         data = self.matrix.__getitem__(key)
-        if not isinstance(data, np.ndarray):
-            data = np.array(data).reshape(1)
-
+        # if not isinstance(data, np.ndarray):
+        #     data = np.array(data).reshape(1)
         return Matrix(data, dtype=self.matrix.dtype)
 
     def __setitem__(self, key, value):
@@ -99,7 +100,7 @@ class Matrix:
             result = self.matrix @ other.matrix
             return Matrix(result, dtype=result.dtype)
         elif isinstance(other, (int, float)):
-            result =  self.matrix * other
+            result = self.matrix * other
             return Matrix(result, dtype=result.dtype)
         else:
             raise Exception('no defination')
@@ -134,50 +135,72 @@ class Matrix:
 
     @property
     def T(self):
-        matrix = copy(self, causal=False)
-        return F.transpose(matrix)
+        from matrixstitcher.transform import Transpose
+        # matrix = copy(self, causal=False)
+        result = Transpose()(self)
+        return result
 
-    def update_tape(self, transform_method, *args, **kwargs):
-        from matrixstitcher.transform import __support_tape__
-        
-        if transform_method in __support_tape__:
-            determined = transform_method.split('_')[0].lower()
+    def update_tape(self, transform, *args, **kwargs):
+        transform_name = transform.__class__.__name__
+
+        if transform.is_elementary():
+            determined = transform_name.lower()
             if 'row' in determined or 'column' in determined:
                 direction = 'row' if 'row' in determined else 'column'
                 size = self.shape[self._direction[direction]]
 
                 elementary = Matrix(np.eye(size), dtype=self._dtype)
-                elementary = getattr(F, transform_method)(elementary, *args, **kwargs)
-                self._elementary_tape[self._direction[direction]].append(elementary)
-                method_name = ''.join([i[0].upper() + i[1:] for i in transform_method.split('_')])
-                self._elementary_hist.append(transform_template(method_name, args, kwargs))
+                with no_tape():
+                    elementary = transform(elementary)
+                self.__elementary_tape[self._direction[direction]].append(elementary)
+        
+        self.__tape.append(transform)
+        self.__tape_hist.append(get_transform_template(transform_name, args, kwargs))
 
     def get_elementary(self):
-        return self._elementary_tape[0][::-1], self._elementary_tape[1]
+        return self.__elementary_tape[0][::-1], self.__elementary_tape[1]
+
+    def get_transform_tape(self):
+        return self.__tape, self.__tape_hist
+
+    def set_elementary(self, *args):
+        args0 = args[0]
+        args1 = args[1]
+        args0 = args0[::-1]
+        self.__elementary_tape = [args0, args1]
+    
+    def set_transform_tape(self, *args):
+        self.__tape = args[0]
+        self.__tape_hist = args[1]
 
     def forward(self, causal=True, display=False):
-        left_tape, right_tape = self.get_elementary()
-        
-        if not display:
-            foward_tape = left_tape + [self] + right_tape
-            if len(foward_tape) > 1:
-                result = reduce(lambda x, y: x * y, foward_tape)
-            else:
-                result = foward_tape[0]
-        else:
-            i, j = 0, 0
-            result = self
-            print('-> Origin matrix:\n{}\n'.format(result))
-            for idx, method in enumerate(self._elementary_hist, 1):
-                if 'row' in method.lower():
-                    result = self._elementary_tape[self._direction['row']][i] * result
-                    i += 1
-                elif 'column' in method.lower():
-                    result = result * self._elementary_tape[self._direction['column']][j]
-                    j += 1
-                else:
-                    raise Exception('An illegal method in the elementary tape history')
-                print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
+        # Have been deprecated for the changing of tape semantics
+
+        # left_tape, right_tape = self.get_elementary()
+        # if not display:
+        #     foward_tape = left_tape + [self] + right_tape
+        #     if len(foward_tape) > 1:
+        #         result = reduce(lambda x, y: x * y, foward_tape)
+        #     else:
+        #         result = foward_tape[0]
+        # else:
+        #     i, j = 0, 0
+        #     result = self
+        #     print('-> Origin matrix:\n{}\n'.format(result))
+        #     for idx, method in enumerate(self._elementary_hist, 1):
+        #         if 'row' in method.lower():
+        #             result = self._elementary_tape[self._direction['row']][i] * result
+        #             i += 1
+        #         elif 'column' in method.lower():
+        #             result = result * self._elementary_tape[self._direction['column']][j]
+        #             j += 1
+        #         else:
+        #             raise Exception('An illegal method in the elementary tape history')
+        #         print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
+
+        pipeline, _ = self.get_transform_tape()
+        with no_tape():
+            result = self.apply(pipeline, display=display, forward=True)
         
         # Manual operation
         if causal:
@@ -195,24 +218,6 @@ class Matrix:
             return self.matrix.reshape(-1)
         else:
             return self.matrix
-    # have been deprecated
-    # def row_transform(*args):
-    #     return F.row_transform(*args)
-
-    # def column_transform(*args):
-    #     return F.column_transform(*args)
-
-    # def row_swap(*args):
-    #     return F.row_swap(*args)
-
-    # def column_swap(*args):
-    #     return F.column_swap(*args)
-
-    # def row_mul(*args):
-    #     return F.row_mul(*args)
-
-    # def column_mul(*args):
-    #     return F.column_mul(*args)
 
         
 def index_mechanism(*key):
@@ -227,18 +232,22 @@ def slice_mechanism(key: slice):
     return slice(start, stop, step)
 
 
-def transform_template(p, _args, _kwargs):
+def get_transform_template(p, *_args, **_kwargs):
     template = '{}{}'.format(p, _args + tuple('{}={}'.format(i, _kwargs[i]) for i in _kwargs))
     return template
 
 
-def apply_pipeline(matrix: Matrix, pipeline, display=False):
+def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
     '''
     A list or tuple of tranforms to apply on the input matrix.
     '''
     from matrixstitcher.transform import Transform
+
     assert isinstance(pipeline, (list, tuple, Transform))
-    done_pipeline = len(matrix._elementary_tape[0] + matrix._elementary_tape[1])
+    if forward:
+        done_pipeline = 0
+    else:
+        done_pipeline = len(matrix.get_transform_tape()[0])
     
     if isinstance(pipeline, Transform):
         pipeline = [pipeline]
@@ -246,11 +255,11 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False):
     if display:
         if done_pipeline == 0:
             print('-> Origin matrix:\n{}\n'.format(matrix))
-        for idx, p in enumerate(pipeline, done_pipeline+1):
+        for idx, p in enumerate(pipeline, done_pipeline + 1):
             assert isinstance(p, Transform)
             matrix = p(matrix)
-            transform_template_ = transform_template(p.__class__.__name__, p._args, p._kwargs)
-            print('-> Stage {}, {}:\n{}\n'.format(idx, transform_template_, matrix))
+            transform_template = repr(p)
+            print('-> Stage {}, {}:\n{}\n'.format(idx, transform_template, matrix))
     else:
         for p in pipeline:
             assert isinstance(p, Transform)
@@ -263,6 +272,17 @@ def copy(matrix: Matrix, causal=True):
 
     # Manual operation
     if causal:
-        new_matrix._elementary_tape = matrix._elementary_tape
-        new_matrix._elementary_hist = matrix._elementary_hist
+        new_matrix.set_elementary(*matrix.get_elementary())
+        new_matrix.set_transform_tape(*matrix.get_transform_tape())
     return new_matrix
+
+
+class no_tape:
+    def __enter__(self):
+        from matrixstitcher.transform import Transform
+        self.prev = Transform.is_tape_enabled()
+        Transform.set_tape_enabled(False)
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        from matrixstitcher.transform import Transform
+        Transform.set_tape_enabled(self.prev)

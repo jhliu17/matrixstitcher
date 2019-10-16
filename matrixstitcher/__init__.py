@@ -1,2 +1,2 @@
 from matrixstitcher.backend import Matrix
-from matrixstitcher.backend import apply_pipeline as apply
+from matrixstitcher.backend import no_tape
