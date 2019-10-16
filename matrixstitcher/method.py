@@ -23,16 +23,13 @@ class Method:
         for matrix in matrixs:
             new_matrix = B.copy(matrix)
             return_matrix.append(new_matrix)
-        if len(matrixs) > 1:
-            return return_matrix
-        else: 
-            return return_matrix[0]
+        return return_matrix
 
 
 class LUFactorization(Method):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tape = True
+    def __init__(self, tape=True):
+        super().__init__()
+        self.tape = tape
     
     def perform(self, matrix):
         
@@ -71,14 +68,14 @@ class LUFactorization(Method):
 
 
 class LeastSquareTech(Method):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tape = False
+    def __init__(self, tape=True):
+        super().__init__()
+        self.tape = tape
         self.parameter = None
         self.error = None
     
     def perform(self, X, y):
-        self.parameter = Inverse()(X.T * X) * X.T * y
+        self.parameter = T.Inverse()(X.T * X) * X.T * y
         self.error = (self.predict(X) - y).T * (self.predict(X) - y)
         return self.parameter, self.error
 

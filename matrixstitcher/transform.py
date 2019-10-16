@@ -16,9 +16,9 @@ class Transform:
     tape_enabled = True
 
     def __init__(self, *args, **kwargs):
-        self.__args = args
-        self.__kwargs = kwargs
-        self.__is_elementary = False
+        self._args = args
+        self._kwargs = kwargs
+        self._is_elementary = False
         self.tape = True
     
     def __call__(self, *matrix):
@@ -35,16 +35,13 @@ class Transform:
             else:
                 new_matrix = B.copy(matrix, causal=False)
             return_matrix.append(new_matrix)
-        if len(matrixs) > 1:
-            return return_matrix
-        else: 
-            return return_matrix[0]
-
+        return return_matrix
+    
     def add_tape(self, matrix: Matrix):
-        matrix.update_tape(self, *self.__args, **self.__kwargs)
+        matrix.update_tape(self, *self._args, **self._kwargs)
 
     def is_elementary(self):
-        return self.__is_elementary
+        return self._is_elementary
 
     @classmethod
     def set_tape_enabled(cls, mode):
@@ -54,10 +51,14 @@ class Transform:
     def is_tape_enabled(cls):
         return cls.tape_enabled
 
+    def __repr__(self):
+        string = B.get_transform_template(self.__class__.__name__, *self._args, **self._kwargs)
+        return string
 
 class RowTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # super(RowTransform, self).__init__(*args, **kwargs)
         self.__is_elementary = True
     
     def perform(self, matrix):
