@@ -74,14 +74,20 @@ class Matrix:
         return self.matrix.__repr__()
 
     def __getitem__(self, key):
-        key = index_mechanism(*key)
+        if isinstance(key, (list, tuple)):
+            key = index_mechanism(*key)
+        else:
+            key = index_mechanism(*[key])
         data = self.matrix.__getitem__(key)
         # if not isinstance(data, np.ndarray):
         #     data = np.array(data).reshape(1)
         return Matrix(data, dtype=self.matrix.dtype)
 
     def __setitem__(self, key, value):
-        key = index_mechanism(*key)
+        if isinstance(key, (list, tuple)):
+            key = index_mechanism(*key)
+        else:
+            key = index_mechanism(*[key])
         self.matrix.__setitem__(key, value)
 
     def __add__(self, other):
@@ -220,13 +226,24 @@ class Matrix:
 
         
 def index_mechanism(*key):
-    key = tuple(i - 1 if not isinstance(i, slice) else slice_mechanism(i) for i in key)
-    return key
+    new_key = []
+    # key = tuple(i - 1 if not isinstance(i, slice) else slice_mechanism(i) for i in key)
+    for i in key:
+        if isinstance(i, slice):
+            new_key.append(slice_mechanism(i))
+        else:
+            if i > 0:
+                new_key.append(i - 1)
+            elif i == 0:
+                raise Exception('Index from 0 is not vaild')
+            else:
+                new_key.append(i)
+    return tuple(new_key)
 
 
 def slice_mechanism(key: slice):
-    start = key.start - 1 if key.start is not None else None
-    stop = key.stop - 1 if key.stop is not None else None
+    start = index_mechanism(*[key.start])[0] if key.start is not None else None
+    stop = index_mechanism(*[key.stop])[0] if key.stop is not None else None
     step = key.step
     return slice(start, stop, step)
 

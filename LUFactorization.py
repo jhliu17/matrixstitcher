@@ -13,17 +13,18 @@ if __name__ == '__main__':
     A = mats.Matrix(A)
     P, L, U = LUFactorization()(A)
 
+    print('The second column of A:\n', A[:, 2], sep='')
     print('\n', '*'*80, sep='')
     print('Execution Path:')
     result = A.forward(display=display_execution)
     
     print('\n', '*'*80, sep='')
     print('The LU Factorization result:')
-    print('P:\n', P)
-    print('L:\n', L)
-    print('U:\n', U)
+    print('P:\n', P, sep='')
+    print('L:\n', L, sep='')
+    print('U:\n', U, sep='')
 
     print('\n', '*'*80, sep='')
     print('Proof P * A = L * U:')
-    print('P * A:\n', P * A)
-    print('L * U:\n', L * U)
+    print('P * A:\n', P * A, sep='')
+    print('L * U:\n', L * U, sep='')
