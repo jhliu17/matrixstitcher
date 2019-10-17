@@ -50,7 +50,7 @@ class LUFactorization(Method):
                     raise Exception('This matrix cannot be fatorized')
 
             if non_zero != i:
-                row_swap = T.RowSwap(i, non_zero)
+                row_swap = T.RowSwap(i=i, j=non_zero)
                 matrix = row_swap(matrix)
                 P = row_swap(P)
                 L = row_swap(L)
@@ -75,8 +75,8 @@ class LeastSquareTech(Method):
         self.error = None
     
     def perform(self, X, y):
-        self.parameter = T.Inverse()(X.T * X) * X.T * y
-        self.error = (self.predict(X) - y).T * (self.predict(X) - y)
+        self.parameter = T.Inverse()(X.T() * X) * X.T() * y
+        self.error = (self.predict(X) - y).T() * (self.predict(X) - y)
         return self.parameter, self.error
 
     def predict(self, X):

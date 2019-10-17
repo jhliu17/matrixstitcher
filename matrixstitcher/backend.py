@@ -133,7 +133,6 @@ class Matrix:
         else:
             raise Exception('({}, {}) matrix can not be converted to a scalar'.format(self.rows, self.columns))
 
-    @property
     def T(self):
         from matrixstitcher.transform import Transpose
         # matrix = copy(self, causal=False)
@@ -155,20 +154,20 @@ class Matrix:
                 self.__elementary_tape[self._direction[direction]].append(elementary)
         
         self.__tape.append(transform)
-        self.__tape_hist.append(get_transform_template(transform_name, args, kwargs))
+        self.__tape_hist.append(get_transform_template(transform_name, *args, **kwargs))
 
-    def get_elementary(self):
+    def elementary(self):
         return self.__elementary_tape[0][::-1], self.__elementary_tape[1]
+    
+    def get_elementary(self):
+        return self.__elementary_tape
 
     def get_transform_tape(self):
         return self.__tape, self.__tape_hist
 
-    def set_elementary(self, *args):
-        args0 = args[0]
-        args1 = args[1]
-        args0 = args0[::-1]
-        self.__elementary_tape = [args0, args1]
-    
+    def set_elementary(self, args):
+        self.__elementary_tape = args
+        
     def set_transform_tape(self, *args):
         self.__tape = args[0]
         self.__tape_hist = args[1]
@@ -272,7 +271,7 @@ def copy(matrix: Matrix, causal=True):
 
     # Manual operation
     if causal:
-        new_matrix.set_elementary(*matrix.get_elementary())
+        new_matrix.set_elementary(matrix.get_elementary())
         new_matrix.set_transform_tape(*matrix.get_transform_tape())
     return new_matrix
 

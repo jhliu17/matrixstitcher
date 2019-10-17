@@ -5,12 +5,6 @@ import matrixstitcher.function as F
 from matrixstitcher.backend import Matrix
 
 
-# __elementary_op__ = [
-#     'row_transform', 'column_transform', 'row_swap', 'column_swap',
-#     'row_mul', 'column_mul'
-# ] # the provided elementary transformations
-
-
 class Transform:
     # enabled tape
     tape_enabled = True
@@ -33,7 +27,7 @@ class Transform:
                 new_matrix = B.copy(matrix)
                 self.add_tape(new_matrix)
             else:
-                new_matrix = B.copy(matrix, causal=False)
+                new_matrix = B.copy(matrix)
             return_matrix.append(new_matrix)
         return return_matrix
     
@@ -55,11 +49,11 @@ class Transform:
         string = B.get_transform_template(self.__class__.__name__, *self._args, **self._kwargs)
         return string
 
+
 class RowTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # super(RowTransform, self).__init__(*args, **kwargs)
-        self.__is_elementary = True
+        self._is_elementary = True
     
     def perform(self, matrix):
         return F.row_transform(matrix, *self._args, **self._kwargs)
@@ -68,7 +62,7 @@ class RowTransform(Transform):
 class ColumnTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__is_elementary = True
+        self._is_elementary = True
     
     def perform(self, matrix):
         return F.column_transform(matrix, *self._args, **self._kwargs)
@@ -77,7 +71,7 @@ class ColumnTransform(Transform):
 class RowSwap(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__is_elementary = True
+        self._is_elementary = True
 
     def perform(self, matrix):
         return F.row_swap(matrix, *self._args, **self._kwargs)
@@ -86,7 +80,7 @@ class RowSwap(Transform):
 class ColumnSwap(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__is_elementary = True
+        self._is_elementary = True
 
     def perform(self, matrix):
         return F.column_swap(matrix, *self._args, **self._kwargs)
@@ -95,7 +89,7 @@ class ColumnSwap(Transform):
 class RowMul(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__is_elementary = True
+        self._is_elementary = True
 
     def perform(self, matrix):
         return F.row_mul(matrix, *self._args, **self._kwargs)
@@ -104,7 +98,7 @@ class RowMul(Transform):
 class ColumnMul(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__is_elementary = True
+        self._is_elementary = True
 
     def perform(self, matrix):
         return F.column_mul(matrix, *self._args, **self._kwargs)
