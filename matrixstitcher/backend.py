@@ -282,6 +282,6 @@ class no_tape:
         self.prev = Transform.is_tape_enabled()
         Transform.set_tape_enabled(False)
     
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_tape_enabled(self.prev)

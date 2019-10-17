@@ -84,6 +84,18 @@ from matrixstitcher.method import Method
 from matrixstitcher.transform import Tranform
 
 
+class Rank(Transform):
+    def __init__(self, *args, **kwargs):
+        '''
+        In order to represent your transform correctly, you must 
+        tell the base object the parameters you have used.
+        '''
+        super().__init__(*args, **kwargs)
+
+    def perform(self, matrix): # you must finish `perform` function
+        return np.linalg.matrix_rank(matrix.matrix)
+
+
 class LeastSquareTech(Method):
     def __init__(self):
         '''
@@ -103,16 +115,4 @@ class LeastSquareTech(Method):
 
     def predict(self, X):
         return X * self.parameter
-
-
-class Rank(Transform):
-    def __init__(self, *args, **kwargs):
-        '''
-        In order to represent your transoform correctly, you must 
-        tell the base object parameters you have used.
-        '''
-        super().__init__(*args, **kwargs)
-
-    def perform(self, matrix): # you must finish `perform` function
-        return np.linalg.matrix_rank(matrix.matrix)
 ```
