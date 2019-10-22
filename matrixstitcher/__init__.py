@@ -1,2 +1,1 @@
-from matrixstitcher.backend import Matrix
-from matrixstitcher.backend import no_tape
+from matrixstitcher.backend import *

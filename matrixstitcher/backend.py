@@ -1,6 +1,7 @@
 import numpy as np
 import matrixstitcher.function as F 
 from functools import reduce
+from copy import deepcopy
 
 
 class Matrix:
@@ -9,16 +10,12 @@ class Matrix:
     '''
     def __init__(self, data, dtype=np.float):
         try:
-            assert isinstance(data, (list, tuple, np.ndarray, int, float))
-        except:
-            raise Exception('data must be a list or tuple')
-        try:
             if isinstance(data, np.ndarray):
                 self.matrix = data
             else:
                 if isinstance(data, (float, int)):
                     data = [data]
-                    
+
                 if dtype is not None:
                     self.matrix = np.array(data, dtype=dtype)
                 else:
@@ -26,7 +23,7 @@ class Matrix:
         except:
             raise Exception('data can not be converted to matrix')
         try:
-            assert len(self.matrix.shape) in (1, 2)
+            assert len(self.matrix.shape) in (0, 1, 2)
         except:
             raise Exception('only support 1 dimensional vector or 2-dimensional matrix not support tensor')
 
@@ -35,6 +32,9 @@ class Matrix:
         self._dtype = self.matrix.dtype
         if len(self.matrix.shape) == 2:
             self.rows, self.columns = self.matrix.shape
+        elif len(self.matrix.shape) == 0:
+            self.rows, self.columns = 1, 1
+            self.matrix = np.reshape(self.matrix, [self.rows, self.columns])
         else:
             self.rows, self.columns = self.matrix.shape[0], 1
             self.matrix = np.reshape(self.matrix, [self.rows, self.columns])
@@ -139,6 +139,7 @@ class Matrix:
         else:
             raise Exception('({}, {}) matrix can not be converted to a scalar'.format(self.rows, self.columns))
 
+    @property
     def T(self):
         from matrixstitcher.transform import Transpose
         # matrix = copy(self, causal=False)
@@ -210,6 +211,7 @@ class Matrix:
         # Manual operation
         if causal:
             new_matrix = copy(self)
+            result = copy(result)
             new_matrix.matrix = result.matrix
             result = new_matrix
 
@@ -284,12 +286,17 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
 
 
 def copy(matrix: Matrix, causal=True):
-    new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
-
-    # Manual operation
-    if causal:
-        new_matrix.set_elementary(matrix.get_elementary())
-        new_matrix.set_transform_tape(*matrix.get_transform_tape())
+    if isinstance(matrix, Matrix):
+        new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
+        
+        # Manual operation
+        if causal:
+            new_matrix.set_elementary(matrix.get_elementary())
+            new_matrix.set_transform_tape(*matrix.get_transform_tape())
+    elif isinstance(matrix, (list, tuple)):
+        new_matrix = Matrix(deepcopy(matrix))
+    else:
+        new_matrix = Matrix(matrix)
     return new_matrix
 
 
@@ -302,3 +309,9 @@ class no_tape:
     def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_tape_enabled(self.prev)
+
+
+def cat(matrix_list: list, axis: int):
+    matrix = np.concatenate([m.matrix for m in matrix_list], axis=axis)
+    new_matrix = Matrix(matrix)
+    return new_matrix

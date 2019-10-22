@@ -14,7 +14,7 @@ class Transform:
         self._kwargs = kwargs
         self._is_elementary = False
         self.tape = True
-    
+
     def __call__(self, *matrix):
         matrix = self.__build(*matrix)
         result = self.perform(*matrix)
@@ -30,7 +30,7 @@ class Transform:
                 new_matrix = B.copy(matrix)
             return_matrix.append(new_matrix)
         return return_matrix
-    
+
     def add_tape(self, matrix: Matrix):
         matrix.update_tape(self, *self._args, **self._kwargs)
 
@@ -40,13 +40,14 @@ class Transform:
     @classmethod
     def set_tape_enabled(cls, mode):
         cls.tape_enabled = mode
-    
+
     @classmethod
     def is_tape_enabled(cls):
         return cls.tape_enabled
 
     def __repr__(self):
-        string = B.get_transform_template(self.__class__.__name__, *self._args, **self._kwargs)
+        string = B.get_transform_template(
+            self.__class__.__name__, *self._args, **self._kwargs)
         return string
 
 
@@ -54,16 +55,16 @@ class RowTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._is_elementary = True
-    
+
     def perform(self, matrix):
         return F.row_transform(matrix, *self._args, **self._kwargs)
-    
+
 
 class ColumnTransform(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._is_elementary = True
-    
+
     def perform(self, matrix):
         return F.column_transform(matrix, *self._args, **self._kwargs)
 
