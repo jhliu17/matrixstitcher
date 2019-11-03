@@ -63,6 +63,7 @@ class Add(Transform):
         if isinstance(self.other, Matrix):
             result = matrix.matrix + self.other.matrix
             result = B.copy(matrix, new_value=matrix.matrix + self.other.matrix, causal=True)
+            
         else:
             with B.no_tape():
                 result = matrix + Matrix(self.other, matrix._dtype)
@@ -77,6 +78,7 @@ class Mul(Transform):
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             result = matrix.matrix @ self.other.matrix
+            
         elif isinstance(self.other, (int, float)):
             result = matrix.matrix * self.other
         else:
@@ -94,11 +96,12 @@ class Sub(Transform):
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             result = matrix.matrix - self.other.matrix
-            return B.copy(matrix, result, causal=True)
+            result = B.copy(matrix, result, causal=True)
+            
         else:
             with B.no_tape():
                 result = matrix - Matrix(other, dtype=matrix._dtype)
-            return result
+        return result
 
 
 class Div(Transform):
@@ -109,16 +112,17 @@ class Div(Transform):
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             result = matrix.matrix / self.other.matrix
-            return B.copy(matrix, result, causal=True)
+            result = B.copy(matrix, result, causal=True)
+            
         else:
             with B.no_tape():
                 result = matrix / Matrix(other)
-            return result
+        return result
 
 
 class SetItem(Transform):
-    def __init__(self, target, key, value):
-        super().__init__(target, key, value)
+    def __init__(self, key, value):
+        super().__init__(key, value)
         self.key = key
         self.value = value
         self.eager = True
@@ -133,8 +137,8 @@ class SetItem(Transform):
 
 
 class GetItem(Transform):
-    def __init__(self, target, key):
-        super().__init__(target, key)
+    def __init__(self, key):
+        super().__init__(key)
         self.key = key
         self.causal = False
 
@@ -144,6 +148,27 @@ class GetItem(Transform):
         else:
             key = B.index_mechanism(*[self.key])
         result = matrix.matrix.__getitem__(key)
+        return B.copy(matrix, new_value=result, causal=True)
+
+
+class AsType(Transform):
+    def __init__(self, new_type):
+        super().__init__(new_type)
+        self.new_type = new_type
+    
+    def perform(self, matrix):
+        return B.copy(matrix, new_type=self.new_type, causal=True)
+
+
+class Reshape(Transform):
+    def __init__(self, shape):
+        super().__init__(shape)
+        assert isinstance(shape, (list, tuple))
+        assert len(shape) == 2
+        self.shape = shape
+
+    def perform(self, matrix):
+        result = matrix.matrix.reshape(self.shape)
         return B.copy(matrix, new_value=result, causal=True)
 
 

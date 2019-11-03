@@ -63,19 +63,15 @@ class Matrix:
         return np.array(self._origin_data, dtype=self._dtype)
     
     def reshape(self, shape):
-        assert isinstance(shape, (list, tuple))
-        assert len(shape) == 2
-
-        self.matrix = self.matrix.reshape(shape)
-        self.rows, self.columns = self.matrix.shape
-        return self.matrix
+        from matrixstitcher.transform import Reshape
+        return Reshape(shape)(self)
 
     def __repr__(self):
         return self.matrix.__repr__()
 
     def __getitem__(self, key):
         from matrixstitcher.transform import GetItem
-        return GetItem(self, key)(self)   
+        return GetItem(key)(self)   
 
     def __setitem__(self, key, value):
         from matrixstitcher.transform import SetItem
@@ -182,7 +178,8 @@ class Matrix:
         return transforms
 
     def as_type(self, dtype):
-        return Matrix(self.matrix, dtype)
+        from matrixstitcher.transform import AsType
+        return AsType(dtype)(self)
 
         
 def index_mechanism(*key):
@@ -243,15 +240,16 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
     return matrix
 
 
-def copy(matrix: Matrix, new_value=None, causal=True, eager_copy=False):
+def copy(matrix: Matrix, new_value=None, new_type=None, causal=True, eager_copy=False):
     if isinstance(matrix, Matrix):
+        dtype = matrix._dtype if new_type is None else new_type
         if new_value is None:
             if not eager_copy:
-                new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
+                new_matrix = Matrix(np.copy(matrix.matrix), dtype=dtype)
             else:
-                new_matrix = Matrix(matrix.matrix, dtype=matrix._dtype)
+                new_matrix = Matrix(matrix.matrix, dtype=dtype)
         else:
-            new_matrix = Matrix(new_value, dtype=matrix._dtype)
+            new_matrix = Matrix(new_value, dtype=dtype)
         
         # Manual operation
         if causal:
