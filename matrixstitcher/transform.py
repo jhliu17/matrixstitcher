@@ -14,7 +14,9 @@ class Transform:
         self._kwargs = kwargs
         self._is_elementary = False
         self.tape = True
-
+        self.eager = False
+        self.causal = True
+        
     def __call__(self, *matrix):
         matrix = self.__build(*matrix)
         result = self.perform(*matrix)
@@ -23,11 +25,12 @@ class Transform:
     def __build(self, *matrixs):
         return_matrix = []
         for matrix in matrixs:
-            if self.tape_enabled and self.tape:
-                new_matrix = B.copy(matrix)
-                self.add_tape(new_matrix)
+            if not self.eager:
+                new_matrix = B.copy(matrix, causal=self.causal)
             else:
-                new_matrix = B.copy(matrix)
+                new_matrix = matrix
+            if self.tape_enabled and self.tape:
+                self.add_tape(new_matrix)
             return_matrix.append(new_matrix)
         return return_matrix
 
@@ -49,6 +52,99 @@ class Transform:
         string = B.get_transform_template(
             self.__class__.__name__, *self._args, **self._kwargs)
         return string
+
+
+class Add(Transform):
+    def __init__(self, other):
+        super().__init__(other)
+        self.other = other
+    
+    def perform(self, matrix):
+        if isinstance(self.other, Matrix):
+            result = matrix.matrix + self.other.matrix
+            result = B.copy(matrix, new_value=matrix.matrix + self.other.matrix, causal=True)
+        else:
+            with B.no_tape():
+                result = matrix + Matrix(self.other, matrix._dtype)
+        return result
+
+
+class Mul(Transform):
+    def __init__(self, other):
+        super().__init__(other)
+        self.other = other
+    
+    def perform(self, matrix):
+        if isinstance(self.other, Matrix):
+            result = matrix.matrix @ self.other.matrix
+        elif isinstance(self.other, (int, float)):
+            result = matrix.matrix * self.other
+        else:
+            raise Exception('no defination')
+
+        result = B.copy(matrix, new_value=result, causal=True)
+        return result
+
+
+class Sub(Transform):
+    def __init__(self, other):
+        super().__init__(other)
+        self.other = other
+    
+    def perform(self, matrix):
+        if isinstance(self.other, Matrix):
+            result = matrix.matrix - self.other.matrix
+            return B.copy(matrix, result, causal=True)
+        else:
+            with B.no_tape():
+                result = matrix - Matrix(other, dtype=matrix._dtype)
+            return result
+
+
+class Div(Transform):
+    def __init__(self, other):
+        super().__init__(other)
+        self.other = other
+    
+    def perform(self, matrix):
+        if isinstance(self.other, Matrix):
+            result = matrix.matrix / self.other.matrix
+            return B.copy(matrix, result, causal=True)
+        else:
+            with B.no_tape():
+                result = matrix / Matrix(other)
+            return result
+
+
+class SetItem(Transform):
+    def __init__(self, target, key, value):
+        super().__init__(target, key, value)
+        self.key = key
+        self.value = value
+        self.eager = True
+
+    def perform(self, matrix):
+        if isinstance(self.key, (list, tuple)):
+            key = B.index_mechanism(*self.key)
+        else:
+            key = B.index_mechanism(*[self.key])
+        matrix.matrix[key] = self.value
+        matrix = Matrix(matrix.matrix, dtype=matrix._dtype)
+
+
+class GetItem(Transform):
+    def __init__(self, target, key):
+        super().__init__(target, key)
+        self.key = key
+        self.causal = False
+
+    def perform(self, matrix):
+        if isinstance(self.key, (list, tuple)):
+            key = B.index_mechanism(*self.key)
+        else:
+            key = B.index_mechanism(*[self.key])
+        result = matrix.matrix.__getitem__(key)
+        return B.copy(matrix, new_value=result, causal=True)
 
 
 class RowTransform(Transform):

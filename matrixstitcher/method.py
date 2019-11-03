@@ -6,7 +6,7 @@ from matrixstitcher.backend import Matrix
 
 class Method:
     def __init__(self):
-        self.tape = False
+        self.tape = True
     
     def __call__(self, *matrix):
         matrix = self.__build(*matrix)
@@ -25,11 +25,16 @@ class Method:
             return_matrix.append(new_matrix)
         return return_matrix
 
+    def no_tape(self):
+        self.tape = False
+    
+    def tape(self):
+        self.tape = True
+
 
 class LUFactorization(Method):
-    def __init__(self, tape=True):
+    def __init__(self):
         super().__init__()
-        self.tape = tape
     
     def perform(self, matrix):
         
@@ -70,9 +75,8 @@ class LUFactorization(Method):
 
 
 class LeastSquareTech(Method):
-    def __init__(self, tape=True):
+    def __init__(self):
         super().__init__()
-        self.tape = tape
         self.parameter = None
         self.error = None
     
@@ -86,9 +90,8 @@ class LeastSquareTech(Method):
 
 
 class RREF(Method):
-    def __init__(self, tape=True):
+    def __init__(self):
         super().__init__()
-        self.tape = tape
 
     def perform(self, matrix):
         row_num = matrix.rows
@@ -127,18 +130,41 @@ class RREF(Method):
 
 
 class SolveLinear(Method):
-    def __init__(self, tape=False):
+    def __init__(self):
         super().__init__()
-        self.tape = tape
     
     def perform(self, A, b):
         A_rref = RREF()(A)
-        argument = B.cat([A, b], axis=-1)
-        argument_rref = RREF()(argument)
-        argument_rank = np.sum(np.sum(argument_rref.matrix, axis=-1) > 0)
+        Arg = B.cat([A, b], axis=-1)
+        Arg_rref = RREF()(Arg)
+
         A_rank = np.sum(np.sum(A_rref.matrix, axis=-1) > 0)
+        Arg_rank = np.sum(np.sum(Arg_rref.matrix, axis=-1) > 0)
 
         if A_rank != argument_rank:
             print('No solution')
+            return None
+        elif A_rank == A.columns:
+            pass
         else:
-            raise NotImplementedError
+            return VectorSpace('df')
+
+
+class VectorSpace(Method):
+    def __init__(self, basis: Matrix, bias: Matrix = None, strict=False):
+        super().__init__()
+        if strict:
+            rank = T.Rank()(basis)
+            if rank.to_scalar() < basis.columns:
+                raise Exception('Can not construct a vector space based on this basis')
+        self.basis = basis
+        self.bias = Matrix(np.zeros(basis.shape), dtype=basis._dtype) if bias is None else bias
+    
+    @property
+    def dim(self):
+        rref = RREF()(self.basis)
+        rank = np.sum(np.sum(rref.matrix, axis=-1) > 0)
+        return rank
+
+    def perform(self, x):
+        return self.basis * x + self.bias

@@ -11,7 +11,7 @@ class Matrix:
     def __init__(self, data, dtype=np.float):
         try:
             if isinstance(data, np.ndarray):
-                self.matrix = data
+                self.matrix = data.astype(dtype)
             else:
                 if isinstance(data, (float, int)):
                     data = [data]
@@ -74,64 +74,40 @@ class Matrix:
         return self.matrix.__repr__()
 
     def __getitem__(self, key):
-        if isinstance(key, (list, tuple)):
-            key = index_mechanism(*key)
-        else:
-            key = index_mechanism(*[key])
-        data = self.matrix.__getitem__(key)
-        # if not isinstance(data, np.ndarray):
-        #     data = np.array(data).reshape(1)
-        return Matrix(data, dtype=self.matrix.dtype)
+        from matrixstitcher.transform import GetItem
+        return GetItem(self, key)(self)   
 
     def __setitem__(self, key, value):
-        if isinstance(key, (list, tuple)):
-            key = index_mechanism(*key)
-        else:
-            key = index_mechanism(*[key])
-        self.matrix.__setitem__(key, value)
+        from matrixstitcher.transform import SetItem
+        return SetItem(key, value)(self)        
 
     def __add__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix + other.matrix
-            return Matrix(result, dtype=result.dtype)
-        else:
-            result = self + Matrix(other)
-            return result
+        from matrixstitcher.transform import Add
+        return Add(other)(self)
 
     def __radd__(self, other):
-        return self.__add__(other)
+        from matrixstitcher.transform import Add
+        return Add(other)(self)
     
     def __mul__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix @ other.matrix
-            return Matrix(result, dtype=result.dtype)
-        elif isinstance(other, (int, float)):
-            result = self.matrix * other
-            return Matrix(result, dtype=result.dtype)
-        else:
-            raise Exception('no defination')
+        from matrixstitcher.transform import Mul
+        return Mul(other)(self)
 
     def __rmul__(self, other):
-        return self.__mul__(other)
+        from matrixstitcher.transform import Mul
+        return Mul(other)(self)
     
     def __sub__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix - other.matrix
-            return Matrix(result, dtype=result.dtype)
-        else:
-            result = self - Matrix(other)
-            return result
+        from matrixstitcher.transform import Sub
+        return Sub(other)(self)
     
     def __rsub__(self, other):
-        return -1 * (self.__sub__(other))
+        from matrixstitcher.transform import Sub
+        return Mul(-1)(Sub(other)(self))
 
     def __truediv__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix / other.matrix
-            return Matrix(result, dtype=result.dtype)
-        else:
-            result = self / Matrix(other)
-            return result
+        from matrixstitcher.transform import Div
+        return Div(other)(self)
 
     def to_scalar(self):
         if self.rows * self.columns == 1:
@@ -142,9 +118,7 @@ class Matrix:
     @property
     def T(self):
         from matrixstitcher.transform import Transpose
-        # matrix = copy(self, causal=False)
-        result = Transpose()(self)
-        return result
+        return Transpose()(self) 
 
     def update_tape(self, transform, *args, **kwargs):
         transform_name = transform.__class__.__name__
@@ -180,31 +154,8 @@ class Matrix:
         self.__tape_hist = args[1]
 
     def forward(self, causal=True, display=False):
-        # Have been deprecated for the changing of tape semantics
-
-        # left_tape, right_tape = self.get_elementary()
-        # if not display:
-        #     foward_tape = left_tape + [self] + right_tape
-        #     if len(foward_tape) > 1:
-        #         result = reduce(lambda x, y: x * y, foward_tape)
-        #     else:
-        #         result = foward_tape[0]
-        # else:
-        #     i, j = 0, 0
-        #     result = self
-        #     print('-> Origin matrix:\n{}\n'.format(result))
-        #     for idx, method in enumerate(self._elementary_hist, 1):
-        #         if 'row' in method.lower():
-        #             result = self._elementary_tape[self._direction['row']][i] * result
-        #             i += 1
-        #         elif 'column' in method.lower():
-        #             result = result * self._elementary_tape[self._direction['column']][j]
-        #             j += 1
-        #         else:
-        #             raise Exception('An illegal method in the elementary tape history')
-        #         print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
-
         pipeline, _ = self.get_transform_tape()
+
         with no_tape():
             result = self.apply(pipeline, display=display, forward=True)
         
@@ -225,6 +176,13 @@ class Matrix:
             return self.matrix.reshape(-1)
         else:
             return self.matrix
+
+    def transforms(self):
+        transforms, _ = self.get_transform_tape()
+        return transforms
+
+    def as_type(self, dtype):
+        return Matrix(self.matrix, dtype)
 
         
 def index_mechanism(*key):
@@ -250,8 +208,8 @@ def slice_mechanism(key: slice):
     return slice(start, stop, step)
 
 
-def get_transform_template(p, *_args, **_kwargs):
-    template = '{}{}'.format(p, _args + tuple('{}={}'.format(i, _kwargs[i]) for i in _kwargs))
+def get_transform_template(transform_name, *_args, **_kwargs):
+    template = '{}{}'.format(transform_name, _args + tuple('{}={}'.format(k, _kwargs[k]) for k in _kwargs))
     return template
 
 
@@ -285,9 +243,15 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
     return matrix
 
 
-def copy(matrix: Matrix, causal=True):
+def copy(matrix: Matrix, new_value=None, causal=True, eager_copy=False):
     if isinstance(matrix, Matrix):
-        new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
+        if new_value is None:
+            if not eager_copy:
+                new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
+            else:
+                new_matrix = Matrix(matrix.matrix, dtype=matrix._dtype)
+        else:
+            new_matrix = Matrix(new_value, dtype=matrix._dtype)
         
         # Manual operation
         if causal:
