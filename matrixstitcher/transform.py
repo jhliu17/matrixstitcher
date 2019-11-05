@@ -8,6 +8,7 @@ from matrixstitcher.backend import Matrix
 class Transform:
     # enabled tape
     tape_enabled = True
+    lazy_perform = False
 
     def __init__(self, *args, **kwargs):
         self._args = args
@@ -19,8 +20,9 @@ class Transform:
         
     def __call__(self, *matrix):
         matrix = self.__build(*matrix)
-        result = self.perform(*matrix)
-        return result
+        if not self.lazy_perform:
+            result = self.perform(*matrix)
+            return result
 
     def __build(self, *matrixs):
         return_matrix = []
@@ -48,6 +50,14 @@ class Transform:
     def is_tape_enabled(cls):
         return cls.tape_enabled
 
+    @classmethod
+    def set_lazy_perform(cls, mode):
+        cls.lazy_perform = mode
+
+    @classmethod
+    def is_lazy_perform(cls):
+        return cls.lazy_perform
+
     def __repr__(self):
         string = B.get_transform_template(
             self.__class__.__name__, *self._args, **self._kwargs)
@@ -64,6 +74,9 @@ class Add(Transform):
             result = matrix.matrix + self.other.matrix
             result = B.copy(matrix, new_value=matrix.matrix + self.other.matrix, causal=True)
             
+            # binary operation tape
+            with B.lazy_op():
+                self.other + matrix
         else:
             with B.no_tape():
                 result = matrix + Matrix(self.other, matrix._dtype)
@@ -79,6 +92,9 @@ class Mul(Transform):
         if isinstance(self.other, Matrix):
             result = matrix.matrix @ self.other.matrix
             
+            # binary operation tape
+            with B.lazy_op():
+                self.other * matrix
         elif isinstance(self.other, (int, float)):
             result = matrix.matrix * self.other
         else:
@@ -98,6 +114,9 @@ class Sub(Transform):
             result = matrix.matrix - self.other.matrix
             result = B.copy(matrix, result, causal=True)
             
+            # binary operation tape
+            with B.lazy_op():
+                -1 * self.other + matrix
         else:
             with B.no_tape():
                 result = matrix - Matrix(other, dtype=matrix._dtype)
@@ -114,6 +133,9 @@ class Div(Transform):
             result = matrix.matrix / self.other.matrix
             result = B.copy(matrix, result, causal=True)
             
+            # binary operation tape
+            with B.lazy_op():
+                1 / self.other * matrix
         else:
             with B.no_tape():
                 result = matrix / Matrix(other)
@@ -248,3 +270,11 @@ class Rank(Transform):
 
     def perform(self, matrix):
         return F.rank(matrix, *self._args, **self._kwargs)
+
+
+class FrobeniusNorm(Transform):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def perform(self, matrix):
+        return Matrix(np.linalg.norm(matrix.matrix, ord='fro'), dtype=matrix._dtype)

@@ -8,6 +8,8 @@ class Matrix:
     '''
     A base object of matrix
     '''
+    _direction = {'row': 0, 'column': 1}
+
     def __init__(self, data, dtype=np.float):
         try:
             if isinstance(data, np.ndarray):
@@ -28,19 +30,7 @@ class Matrix:
             raise Exception('only support 1 dimensional vector or 2-dimensional matrix not support tensor')
 
         # Auto determined
-        self._origin_data = data
-        self._dtype = self.matrix.dtype
-        if len(self.matrix.shape) == 2:
-            self.rows, self.columns = self.matrix.shape
-        elif len(self.matrix.shape) == 0:
-            self.rows, self.columns = 1, 1
-            self.matrix = np.reshape(self.matrix, [self.rows, self.columns])
-        else:
-            self.rows, self.columns = self.matrix.shape[0], 1
-            self.matrix = np.reshape(self.matrix, [self.rows, self.columns])
-        self.square = True if self.rows == self.columns else False
-        self.shape = (self.rows, self.columns)
-        self._direction = {'row': 0, 'column': 1}
+        self.update()
 
         # Manual operation
         '''
@@ -58,6 +48,25 @@ class Matrix:
         self.__elementary_tape = [[], []]
         self.__tape = []
         self.__tape_hist = []
+
+    def update(self):
+        '''
+        update the auto-determined property
+        '''
+        if len(self.matrix.shape) == 1:
+            rows, columns = self.matrix.shape[0], 1
+            self.matrix = np.reshape(self.matrix, [rows, columns])
+        elif len(self.matrix.shape) == 0:
+            rows, columns = 1, 1
+            self.matrix = np.reshape(self.matrix, [rows, columns])
+        else:
+            pass
+        
+        self._origin_data = self.matrix.tolist()
+        self._dtype = self.matrix.dtype
+        self.rows, self.columns = self.matrix.shape
+        self.square = True if self.rows == self.columns else False
+        self.shape = (self.rows, self.columns)
 
     def get_origin(self):
         return np.array(self._origin_data, dtype=self._dtype)
@@ -271,6 +280,17 @@ class no_tape:
     def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_tape_enabled(self.prev)
+
+
+class lazy_op:
+    def __enter__(self):
+        from matrixstitcher.transform import Transform
+        self.prev = Transform.is_lazy_perform()
+        Transform.set_lazy_perform(True)
+    
+    def __exit__(self, *args):
+        from matrixstitcher.transform import Transform
+        Transform.set_lazy_perform(self.prev)
 
 
 def cat(matrix_list: list, axis: int):

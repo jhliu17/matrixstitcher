@@ -12,6 +12,7 @@ def row_transform(matrix, i: int, k: float, j: int):
     
     i, j = B.index_mechanism(i, j)
     matrix.matrix[j, :] = matrix.matrix[i, :] * k + matrix.matrix[j, :]
+    matrix.update()
     return matrix
 
 
@@ -25,6 +26,7 @@ def column_transform(matrix, i: int, k: float, j: int):
     
     i, j = B.index_mechanism(i, j)
     matrix.matrix[:, j] = matrix.matrix[:, i] * k + matrix.matrix[:, j]
+    matrix.update()
     return matrix
 
 
@@ -37,6 +39,7 @@ def row_swap(matrix, i: int, j: int):
     
     i, j = B.index_mechanism(i, j)
     matrix.matrix[[i, j], :] = matrix.matrix[[j, i], :]
+    matrix.update()
     return matrix
 
 
@@ -49,6 +52,7 @@ def column_swap(matrix, i: int, j: int):
     
     i, j = B.index_mechanism(i, j)
     matrix.matrix[:, [i, j]] = matrix.matrix[:, [j, i]]
+    matrix.update()
     return matrix
 
 
@@ -58,6 +62,7 @@ def row_mul(matrix, i: int, k: float):
     
     i = B.index_mechanism(i)
     matrix.matrix[i, :] = matrix.matrix[i, :] * k
+    matrix.update()
     return matrix
 
 
@@ -67,11 +72,13 @@ def column_mul(matrix, i: int, k: float):
     
     i = B.index_mechanism(i)
     matrix.matrix[:, i] = matrix.matrix[:, i] * k
+    matrix.update()
     return matrix
 
 
 def transpose(matrix):
     matrix.matrix = matrix.matrix.transpose()
+    matrix.update()
     return matrix
 
 
@@ -83,6 +90,7 @@ def inverse(matrix):
             raise Exception('Matrix is noninvertible')
         else:
             matrix.matrix = inv
+            matrix.update()
     else:
         raise Exception('Unsquare matrix is noninvertible')
     return matrix
