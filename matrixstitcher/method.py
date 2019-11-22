@@ -170,13 +170,13 @@ class VectorSpace(Method):
         return self.basis * x + self.bias
 
 
-class GramSmith(Method):
+class GramSchmidt(Method):
     def __init__(self):
         super().__init__()
 
     def perform(self, matrix):
         # linear independent checking
-        rank = T.Rank(matrix)
+        rank = T.Rank()(matrix)
         if rank != matrix.columns:
             return None
         
@@ -192,7 +192,7 @@ class GramSmith(Method):
             u_k = B.copy(x_k)
 
             for row, u in enumerate(U, 1):
-                c_k = x_k.T * u
+                c_k = (x_k.T * u).to_scalar()
                 R[row, col] = c_k
                 u_k -= c_k * u
             
@@ -200,7 +200,7 @@ class GramSmith(Method):
             U.append(u_k / u_k_norm)
             R[row + 1, col] = u_k_norm
             
-        return T.Cat(axis=-1)(U), R
+        return T.Cat(axis=-1)(*U), R
 
 
 class Reflector(Method):
@@ -253,44 +253,40 @@ class HouseHold(Method):
             return None
 
         R = []
-        for i in range(1, matrix.columns + 1):
+        for i in range(1, matrix.columns):
             sub_matrix = matrix[i:, i:]
             r = Matrix(np.eye(matrix.rows))
             r[i:, i:] = Reflector()(sub_matrix[:, 1])
+            matrix = r * matrix
             R.append(r)
 
-        for r in R:
-            matrix = r * matrix
-
         from functools import reduce
-        R = reduce(lambda x, y: x * y, R)
+        R = reduce(lambda x, y: x * y, R[::-1])
         return R.T, matrix
 
 
-class Givense(Method):
+class Givens(Method):
     def __init__(self):
         super().__init__()
     
     def perform(self, matrix):
         # linear independent checking
-        rank = T.Rank(matrix)
+        rank = T.Rank()(matrix)
         if rank != matrix.columns:
             return None
 
         P = []
-        for i in range(1, matrix.columns + 1):
+        for i in range(1, matrix.columns):
             sub_matrix = matrix[i:, i:]
 
-            for j in range(i + 1, matrix.rows + 1):
+            for j in range(2, sub_matrix.rows + 1):
                 p = Matrix(np.eye(matrix.rows))
-                p[i:, i:] = Rotator(i, j)(sub_matrix[:, 1])
+                p[i:, i:] = Rotator(1, j)(sub_matrix[:, 1])
+                matrix = p * matrix
                 P.append(p)
-
-        for p in P:
-            matrix = p * matrix
         
         from functools import reduce
-        P = reduce(lambda x, y: x * y, P)
+        P = reduce(lambda x, y: x * y, P[::-1])
         
         return P.T, matrix
 

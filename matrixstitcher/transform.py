@@ -146,7 +146,10 @@ class SetItem(Transform):
         self.eager = True
 
     def perform(self, matrix):
-        matrix.matrix.__setitem__(self.key, self.value)
+        if isinstance(self.value, Matrix):
+            matrix.matrix[self.key] = self.value.matrix
+        else:
+            matrix.matrix[self.key] = self.value
         matrix = Matrix(matrix.matrix)
 
 
@@ -157,7 +160,7 @@ class GetItem(Transform):
         self.causal = False
 
     def perform(self, matrix):
-        result = matrix.matrix.__getitem__(self.key)
+        result = matrix.matrix[self.key]
         return B.copy(matrix, new_value=result, causal=True)
 
 
@@ -273,7 +276,7 @@ class Cat(Transform):
         super().__init__(axis=axis)
         self.axis = axis
     
-    def perform(self, matrix):
+    def perform(self, *matrix):
         matrix = np.concatenate([m.matrix for m in matrix], axis=self.axis)
         new_matrix = Matrix(matrix)
         return new_matrix
