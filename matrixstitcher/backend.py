@@ -206,6 +206,7 @@ class Matrix(object):
         self.__elementary_tape = [[], []]
         self.__tape = []
         self.__tape_hist = []
+        return self
 
         
 def index_mechanism(*key):

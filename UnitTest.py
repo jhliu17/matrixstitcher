@@ -1,18 +1,13 @@
 import numpy as np
 import matrixstitcher as mats
-from matrixstitcher.method import Rotator, Reflector, HouseHold
+from matrixstitcher.method import Rotator, Reflector, HouseHold, Givens, GramSchmidt
 
-# v = mats.Matrix([-1, 2, 0, -2], dtype=np.float) / 3
-# p = Rotator(1, 2)(v)
-# v = p * v
-# p = Rotator(1, 4)(v)
-# v = p * v
-# print(p, v)
 
-# r = Reflector()(v)
-# v = r * v
-# print(r, v)
-
-v = mats.Matrix([[0, -20, -14], [3, 27, -4], [4, 11, -2]], dtype=np.float)
-R, v = HouseHold()(v)
-print(R)
+v = mats.Matrix([[0, -20, -14], [3, 27, -4], [4, 11, -2]], dtype=np.float64)
+Q1, R1 = GramSchmidt()(v)
+Q2, R2 = HouseHold()(v)
+Q3, R3 = Givens()(v)
+print(Q1 * R1)
+print(Q2 * R2)
+print(Q3 * R3)
+print(v)

@@ -9,6 +9,7 @@ A numpy wrapper for learning matrix analysis that combines the advantage of eage
 
 ## Quick Guide
 ```python
+import numpy as np
 import matrixstitcher as mats 
 from matrixstitcher.method import LUFactorization
 
@@ -18,8 +19,10 @@ A = [[1, 2, -3],
      [4, 8, 12], 
      [2, 3, 2]] 
      
-A = mats.Matrix(A) # get the matrix object from MatrixStitcher
-P, L, U = LUFactorization()(A) # apply LU Factorization on matrix A and get the factorization results
+A = mats.Matrix(A, dtype=np.float) # get the matrix object from MatrixStitcher
+
+with mats.TransformTape(): # tape all the transforms
+    P, L, U = LUFactorization()(A) # apply LU Factorization on matrix A and get the factorization results
 
 # show the execution state of the matrix A
 print('The second column of A:\n', A[:, 2], sep='')
@@ -59,14 +62,13 @@ array([[ 1.,  2., -3.],
        [ 0.,  0., 24.]])
 ```
 
-If you don't want to track the transformations, `no_tape()` would be helpful.
+If you don't want to track the transformations, apply your method outside the context of `TransformTape()` would be helpful.
 ```python
 import matrixstitcher as mats 
 
 # construct data ...
 
-with mats.no_tape():
-    P, L, U = LUFactorization()(A)
+P, L, U = LUFactorization()(A)
 
 A.forward(display=True)
 
@@ -114,8 +116,8 @@ class LeastSquareTech(Method):
         self.error = None
     
     def perform(self, X, y): # you must finish `perform` function
-        self.parameter = T.Inverse()(X.T() * X) * X.T() * y
-        self.error = (self.predict(X) - y).T() * (self.predict(X) - y)
+        self.parameter = T.Inverse()(X.T * X) * X.T * y
+        self.error = (self.predict(X) - y).T * (self.predict(X) - y)
         return self.parameter, self.error
 
     def predict(self, X):
