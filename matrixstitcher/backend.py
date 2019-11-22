@@ -1,24 +1,28 @@
 import numpy as np
 import matrixstitcher.function as F 
 from functools import reduce
+from copy import deepcopy
 
 
-class Matrix:
+__all__ = ['Matrix', 'get_transform_template', 'TransformTape', 'LazyPerform', 'copy', 'NoTape']
+
+
+class Matrix(object):
     '''
-    A base object of matrix
+    A base object of matrix including the most of the functional support for 
+    taping, operations, and transformations.
     '''
-    def __init__(self, data, dtype=np.float):
-        try:
-            assert isinstance(data, (list, tuple, np.ndarray, int, float))
-        except:
-            raise Exception('data must be a list or tuple')
+
+    _direction = {'row': 0, 'column': 1}
+
+    def __init__(self, data, dtype=None):
         try:
             if isinstance(data, np.ndarray):
-                self.matrix = data
+                self.matrix = data.astype(dtype)
             else:
                 if isinstance(data, (float, int)):
                     data = [data]
-                    
+
                 if dtype is not None:
                     self.matrix = np.array(data, dtype=dtype)
                 else:
@@ -26,24 +30,21 @@ class Matrix:
         except:
             raise Exception('data can not be converted to matrix')
         try:
-            assert len(self.matrix.shape) in (1, 2)
+            assert len(self.matrix.shape) in (0, 1, 2)
         except:
             raise Exception('only support 1 dimensional vector or 2-dimensional matrix not support tensor')
 
-        # Auto determined
-        self._origin_data = data
-        self._dtype = self.matrix.dtype
-        if len(self.matrix.shape) == 2:
-            self.rows, self.columns = self.matrix.shape
-        else:
-            self.rows, self.columns = self.matrix.shape[0], 1
-            self.matrix = np.reshape(self.matrix, [self.rows, self.columns])
-        self.square = True if self.rows == self.columns else False
-        self.shape = (self.rows, self.columns)
-        self._direction = {'row': 0, 'column': 1}
-
-        # Manual operation
         '''
+        Auto determined:
+
+        Auto determined some property like the shape, square etc. 
+        See function update for more details.
+        '''
+        self.update()
+
+        '''
+        Manual operation:
+
         The elementary tape records the whole path of applied elementary transformations on this matrix where
         two lists include applied row and column transform in time ordering respectively. All the sequence matrix
         derive from this matrix will share the elementary tape and hist and this behavior can be controled by causal
@@ -53,97 +54,92 @@ class Matrix:
         self.__tape = []
         self.__tape_hist = []
 
-    def refresh(self):
-        self.matrix = np.array(self._origin_data, dtype=self._dtype)
-        self.__elementary_tape = [[], []]
-        self.__tape = []
-        self.__tape_hist = []
+    def update(self):
+        '''
+        update the auto-determined property
+        '''
+        if len(self.matrix.shape) == 1:
+            rows, columns = self.matrix.shape[0], 1
+            self.matrix = np.reshape(self.matrix, [rows, columns])
+        elif len(self.matrix.shape) == 0:
+            rows, columns = 1, 1
+            self.matrix = np.reshape(self.matrix, [rows, columns])
+        else:
+            pass
+        
+        self._origin_data = self.matrix.tolist()
+        self._dtype = self.matrix.dtype
+        self.rows, self.columns = self.matrix.shape
+        self.square = True if self.rows == self.columns else False
+        self.shape = (self.rows, self.columns)
 
     def get_origin(self):
         return np.array(self._origin_data, dtype=self._dtype)
     
     def reshape(self, shape):
-        assert isinstance(shape, (list, tuple))
-        assert len(shape) == 2
-
-        self.matrix = self.matrix.reshape(shape)
-        self.rows, self.columns = self.matrix.shape
-        return self.matrix
+        from matrixstitcher.transform import Reshape
+        return Reshape(shape)(self)
 
     def __repr__(self):
         return self.matrix.__repr__()
 
     def __getitem__(self, key):
+        from matrixstitcher.transform import GetItem
         if isinstance(key, (list, tuple)):
             key = index_mechanism(*key)
         else:
             key = index_mechanism(*[key])
-        data = self.matrix.__getitem__(key)
-        # if not isinstance(data, np.ndarray):
-        #     data = np.array(data).reshape(1)
-        return Matrix(data, dtype=self.matrix.dtype)
+        return GetItem(key)(self)   
 
     def __setitem__(self, key, value):
+        from matrixstitcher.transform import SetItem
         if isinstance(key, (list, tuple)):
             key = index_mechanism(*key)
         else:
             key = index_mechanism(*[key])
-        self.matrix.__setitem__(key, value)
+        return SetItem(key, value)(self)        
 
     def __add__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix + other.matrix
-            return Matrix(result, dtype=result.dtype)
-        else:
-            result = self + Matrix(other)
-            return result
+        from matrixstitcher.transform import Add
+        return Add(other)(self)
 
     def __radd__(self, other):
-        return self.__add__(other)
+        from matrixstitcher.transform import Add
+        return Add(other)(self)
     
     def __mul__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix @ other.matrix
-            return Matrix(result, dtype=result.dtype)
-        elif isinstance(other, (int, float)):
-            result = self.matrix * other
-            return Matrix(result, dtype=result.dtype)
-        else:
-            raise Exception('no defination')
+        from matrixstitcher.transform import Mul
+        return Mul(other)(self)
 
     def __rmul__(self, other):
-        return self.__mul__(other)
+        from matrixstitcher.transform import Mul
+        return Mul(other)(self)
     
     def __sub__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix - other.matrix
-            return Matrix(result, dtype=result.dtype)
-        else:
-            result = self - Matrix(other)
-            return result
+        from matrixstitcher.transform import Sub
+        return Sub(other)(self)
     
     def __rsub__(self, other):
-        return -1 * (self.__sub__(other))
+        from matrixstitcher.transform import Sub, Mul
+        return Mul(-1)(Sub(other)(self))
 
     def __truediv__(self, other):
-        if isinstance(other, Matrix):
-            result = self.matrix / other.matrix
-            return Matrix(result, dtype=result.dtype)
-        else:
-            result = self / Matrix(other)
-            return result
+        from matrixstitcher.transform import Div
+        return Div(other)(self)
+    
+    def __rtruediv__(self, other):
+        raise Exception('({}, {}) matrix can not be divded by a scalar'.format(self.rows, self.columns))
 
     def to_scalar(self):
         if self.rows * self.columns == 1:
-            return float(self.matrix)
+            return self.matrix.item()
         else:
             raise Exception('({}, {}) matrix can not be converted to a scalar'.format(self.rows, self.columns))
 
+    @property
     def T(self):
         from matrixstitcher.transform import Transpose
-        # matrix = copy(self, causal=False)
-        result = Transpose()(self)
-        return result
+        return Transpose()(self) 
 
     def update_tape(self, transform, *args, **kwargs):
         transform_name = transform.__class__.__name__
@@ -155,7 +151,7 @@ class Matrix:
                 size = self.shape[self._direction[direction]]
 
                 elementary = Matrix(np.eye(size), dtype=self._dtype)
-                with no_tape():
+                with NoTape():
                     elementary = transform(elementary)
                 self.__elementary_tape[self._direction[direction]].append(elementary)
         
@@ -178,41 +174,15 @@ class Matrix:
         self.__tape = args[0]
         self.__tape_hist = args[1]
 
-    def forward(self, causal=True, display=False):
-        # Have been deprecated for the changing of tape semantics
-
-        # left_tape, right_tape = self.get_elementary()
-        # if not display:
-        #     foward_tape = left_tape + [self] + right_tape
-        #     if len(foward_tape) > 1:
-        #         result = reduce(lambda x, y: x * y, foward_tape)
-        #     else:
-        #         result = foward_tape[0]
-        # else:
-        #     i, j = 0, 0
-        #     result = self
-        #     print('-> Origin matrix:\n{}\n'.format(result))
-        #     for idx, method in enumerate(self._elementary_hist, 1):
-        #         if 'row' in method.lower():
-        #             result = self._elementary_tape[self._direction['row']][i] * result
-        #             i += 1
-        #         elif 'column' in method.lower():
-        #             result = result * self._elementary_tape[self._direction['column']][j]
-        #             j += 1
-        #         else:
-        #             raise Exception('An illegal method in the elementary tape history')
-        #         print('-> Stage {}, {}:\n{}\n'.format(idx, method, result))
-
+    def forward(self, display=False):
         pipeline, _ = self.get_transform_tape()
-        with no_tape():
+
+        with NoTape():
             result = self.apply(pipeline, display=display, forward=True)
         
         # Manual operation
-        if causal:
-            new_matrix = copy(self)
-            new_matrix.matrix = result.matrix
-            result = new_matrix
-
+        new_matrix = copy(self, new_value=result.matrix)
+        result = new_matrix
         return result
         
     def apply(self, *args, **kwargs):
@@ -223,6 +193,20 @@ class Matrix:
             return self.matrix.reshape(-1)
         else:
             return self.matrix
+
+    def transforms(self):
+        transforms, _ = self.get_transform_tape()
+        return transforms
+
+    def as_type(self, dtype):
+        from matrixstitcher.transform import AsType
+        return AsType(dtype)(self)
+
+    def detach(self):
+        self.__elementary_tape = [[], []]
+        self.__tape = []
+        self.__tape_hist = []
+        return self
 
         
 def index_mechanism(*key):
@@ -248,8 +232,8 @@ def slice_mechanism(key: slice):
     return slice(start, stop, step)
 
 
-def get_transform_template(p, *_args, **_kwargs):
-    template = '{}{}'.format(p, _args + tuple('{}={}'.format(i, _kwargs[i]) for i in _kwargs))
+def get_transform_template(transform_name, *_args, **_kwargs):
+    template = '{}{}'.format(transform_name, _args + tuple('{}={}'.format(k, _kwargs[k]) for k in _kwargs))
     return template
 
 
@@ -283,17 +267,29 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
     return matrix
 
 
-def copy(matrix: Matrix, causal=True):
-    new_matrix = Matrix(np.copy(matrix.matrix), dtype=matrix._dtype)
-
-    # Manual operation
-    if causal:
-        new_matrix.set_elementary(matrix.get_elementary())
-        new_matrix.set_transform_tape(*matrix.get_transform_tape())
+def copy(matrix: Matrix, new_value=None, new_type=None, causal=True, eager_copy=False):
+    if isinstance(matrix, Matrix):
+        dtype = matrix._dtype if new_type is None else new_type
+        if new_value is None:
+            if not eager_copy:
+                new_matrix = Matrix(np.copy(matrix.matrix), dtype=dtype)
+            else:
+                new_matrix = Matrix(matrix.matrix, dtype=dtype)
+        else:
+            new_matrix = Matrix(new_value, dtype=dtype)
+        
+        # Manual operation
+        if causal:
+            new_matrix.set_elementary(matrix.get_elementary())
+            new_matrix.set_transform_tape(*matrix.get_transform_tape())
+    elif isinstance(matrix, (list, tuple)):
+        new_matrix = Matrix(deepcopy(matrix))
+    else:
+        new_matrix = Matrix(matrix)
     return new_matrix
 
 
-class no_tape:
+class NoTape:
     def __enter__(self):
         from matrixstitcher.transform import Transform
         self.prev = Transform.is_tape_enabled()
@@ -302,3 +298,25 @@ class no_tape:
     def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_tape_enabled(self.prev)
+
+
+class TransformTape:
+    def __enter__(self):
+        from matrixstitcher.transform import Transform
+        self.prev = Transform.is_tape_enabled()
+        Transform.set_tape_enabled(True)
+    
+    def __exit__(self, *args):
+        from matrixstitcher.transform import Transform
+        Transform.set_tape_enabled(self.prev)
+
+
+class LazyPerform:
+    def __enter__(self):
+        from matrixstitcher.transform import Transform
+        self.prev = Transform.is_lazy_perform()
+        Transform.set_lazy_perform(True)
+    
+    def __exit__(self, *args):
+        from matrixstitcher.transform import Transform
+        Transform.set_lazy_perform(self.prev)
