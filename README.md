@@ -1,8 +1,9 @@
 # Matrix Stitcher
 
-A numpy wrapper for learning matrix analysis that combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your transformations applied on the origin matrix.
+A numpy wrapper for learning matrix analysis that combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your transformations applied on the origin matrix. It is a naive final project for Matrix Analysis and Applications course in UCAS including `PLU Factorization` (Gaussian elimination), `QR Factorization` (GramSchmidt, HouseHolder, and Givens).
 
-- Intuitive implementation for educational purposes 
+## Features
+- Intuitive implementation for educational purpose
 - Index from 1 which is consistent with the mathematical declaration
 - Dynamicaly track the transformations applied on the orgin matrix
 - Easily extend your transforms and methods
@@ -62,7 +63,7 @@ array([[ 1.,  2., -3.],
        [ 0.,  0., 24.]])
 ```
 
-If you don't want to track the transformations, apply your method outside the context of `TransformTape()` would be helpful.
+If you don't want to track the transformations, applying your method outside the context of `TransformTape()` would be helpful.
 ```python
 import matrixstitcher as mats 
 
@@ -79,7 +80,7 @@ A.forward(display=True)
 #        [ 4.,  8., 12.],
 #        [ 2.,  3.,  2.]])
 ```
-You can also get the correct factorization results P, L, U. But the transformations would not be recorded into A's tape history.
+You can get the same factorization results P, L, U. But the transformations would not be recorded into A's tape history.
 
 ## Extend Transform and Method
 

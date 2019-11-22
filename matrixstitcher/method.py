@@ -242,7 +242,7 @@ class Rotator(Method):
         return rotator
 
 
-class HouseHold(Method):
+class HouseHolder(Method):
     def __init__(self):
         super().__init__()
     
