@@ -7,7 +7,7 @@ from matrixstitcher.backend import Matrix
 
 class Transform:
     # enabled tape
-    tape_enabled = True
+    tape_enabled = False
     lazy_perform = False
 
     def __init__(self, *args, **kwargs):
@@ -75,10 +75,10 @@ class Add(Transform):
             result = B.copy(matrix, new_value=matrix.matrix + self.other.matrix, causal=True)
             
             # binary operation tape
-            with B.lazy_op():
+            with B.LazyPerform():
                 self.other + matrix
         else:
-            with B.no_tape():
+            with B.NoTape():
                 result = matrix + Matrix(self.other, matrix._dtype)
         return result
 
@@ -93,7 +93,7 @@ class Mul(Transform):
             result = matrix.matrix @ self.other.matrix
             
             # binary operation tape
-            with B.lazy_op():
+            with B.LazyPerform():
                 self.other * matrix
         elif isinstance(self.other, (int, float)):
             result = matrix.matrix * self.other
@@ -115,11 +115,11 @@ class Sub(Transform):
             result = B.copy(matrix, result, causal=True)
             
             # binary operation tape
-            with B.lazy_op():
+            with B.LazyPerform():
                 -1 * self.other + matrix
         else:
-            with B.no_tape():
-                result = matrix - Matrix(other, dtype=matrix._dtype)
+            with B.NoTape():
+                result = matrix - Matrix(self.other, dtype=matrix._dtype)
         return result
 
 
@@ -132,13 +132,9 @@ class Div(Transform):
         if isinstance(self.other, Matrix):
             result = matrix.matrix / self.other.matrix
             result = B.copy(matrix, result, causal=True)
-            
-            # binary operation tape
-            with B.lazy_op():
-                1 / self.other * matrix
         else:
-            with B.no_tape():
-                result = matrix / Matrix(other)
+            with B.NoTape():
+                result = matrix / Matrix(self.other)
         return result
 
 
@@ -150,12 +146,8 @@ class SetItem(Transform):
         self.eager = True
 
     def perform(self, matrix):
-        if isinstance(self.key, (list, tuple)):
-            key = B.index_mechanism(*self.key)
-        else:
-            key = B.index_mechanism(*[self.key])
-        matrix.matrix[key] = self.value
-        matrix = Matrix(matrix.matrix, dtype=matrix._dtype)
+        matrix.matrix.__setitem__(self.key, self.value)
+        matrix = Matrix(matrix.matrix)
 
 
 class GetItem(Transform):
@@ -165,11 +157,7 @@ class GetItem(Transform):
         self.causal = False
 
     def perform(self, matrix):
-        if isinstance(self.key, (list, tuple)):
-            key = B.index_mechanism(*self.key)
-        else:
-            key = B.index_mechanism(*[self.key])
-        result = matrix.matrix.__getitem__(key)
+        result = matrix.matrix.__getitem__(self.key)
         return B.copy(matrix, new_value=result, causal=True)
 
 
@@ -277,4 +265,23 @@ class FrobeniusNorm(Transform):
         super().__init__(*args, **kwargs)
     
     def perform(self, matrix):
-        return Matrix(np.linalg.norm(matrix.matrix, ord='fro'), dtype=matrix._dtype)
+        return Matrix(np.linalg.norm(matrix.matrix, ord='fro'))
+
+
+class Cat(Transform):
+    def __init__(self, axis: int = -1):
+        super().__init__(axis=axis)
+        self.axis = axis
+    
+    def perform(self, matrix):
+        matrix = np.concatenate([m.matrix for m in matrix], axis=self.axis)
+        new_matrix = Matrix(matrix)
+        return new_matrix
+
+
+class L2Norm(Transform):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def perform(self, matrix):
+        return Matrix(np.linalg.norm(matrix.matrix))

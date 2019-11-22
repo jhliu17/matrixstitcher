@@ -89,7 +89,7 @@ class LeastSquareTech(Method):
         return X * self.parameter
 
 
-class RREF(Method):
+class REF(Method):
     def __init__(self):
         super().__init__()
 
@@ -168,3 +168,138 @@ class VectorSpace(Method):
 
     def perform(self, x):
         return self.basis * x + self.bias
+
+
+class GramSmith(Method):
+    def __init__(self):
+        super().__init__()
+
+    def perform(self, matrix):
+        # linear independent checking
+        rank = T.Rank(matrix)
+        if rank != matrix.columns:
+            return None
+        
+        U = []
+        u_k = matrix[:, 1]
+        u_k_norm = T.L2Norm()(matrix[:, 1])
+        U.append(u_k / u_k_norm)
+        R = Matrix(np.zeros((matrix.columns,) * 2))
+        R[1, 1] = u_k_norm
+
+        for col in range(2, matrix.columns + 1):
+            x_k = matrix[:, col]
+            u_k = B.copy(x_k)
+
+            for row, u in enumerate(U, 1):
+                c_k = x_k.T * u
+                R[row, col] = c_k
+                u_k -= c_k * u
+            
+            u_k_norm = T.L2Norm()(u_k)
+            U.append(u_k / u_k_norm)
+            R[row + 1, col] = u_k_norm
+            
+        return T.Cat(axis=-1)(U), R
+
+
+class Reflector(Method):
+    def __init__(self, ref2dim=1):
+        super().__init__()
+        self.dim = ref2dim
+
+    def perform(self, matrix):
+        row = matrix.rows
+        u = Matrix(np.zeros((row, 1)))
+        u[self.dim] = 1
+
+        u = matrix - T.L2Norm()(matrix).to_scalar() * u
+        reflector = Matrix(np.eye(row)) - 2 * u * u.T / (u.T * u)
+        return reflector
+
+
+class Rotator(Method):
+    def __init__(self, i, j):
+        super().__init__()
+        self.i = i
+        self.j = j
+
+    def perform(self, matrix):
+        row = matrix.rows
+        x_i = matrix[self.i].to_scalar()
+        x_j = matrix[self.j].to_scalar()
+        x = (x_i ** 2 + x_j ** 2) ** 0.5
+        
+        c = x_i / x
+        s = x_j / x
+
+        rotator = Matrix(np.eye(row))
+        rotator[self.i, self.i] = c
+        rotator[self.i, self.j] = s
+        rotator[self.j, self.i] = -s
+        rotator[self.j, self.j] = c
+
+        return rotator
+
+
+class HouseHold(Method):
+    def __init__(self):
+        super().__init__()
+    
+    def perform(self, matrix):
+        # linear independent checking
+        rank = T.Rank()(matrix)
+        if rank != matrix.columns:
+            return None
+
+        R = []
+        for i in range(1, matrix.columns + 1):
+            sub_matrix = matrix[i:, i:]
+            r = Matrix(np.eye(matrix.rows))
+            r[i:, i:] = Reflector()(sub_matrix[:, 1])
+            R.append(r)
+
+        for r in R:
+            matrix = r * matrix
+
+        from functools import reduce
+        R = reduce(lambda x, y: x * y, R)
+        return R.T, matrix
+
+
+class Givense(Method):
+    def __init__(self):
+        super().__init__()
+    
+    def perform(self, matrix):
+        # linear independent checking
+        rank = T.Rank(matrix)
+        if rank != matrix.columns:
+            return None
+
+        P = []
+        for i in range(1, matrix.columns + 1):
+            sub_matrix = matrix[i:, i:]
+
+            for j in range(i + 1, matrix.rows + 1):
+                p = Matrix(np.eye(matrix.rows))
+                p[i:, i:] = Rotator(i, j)(sub_matrix[:, 1])
+                P.append(p)
+
+        for p in P:
+            matrix = p * matrix
+        
+        from functools import reduce
+        P = reduce(lambda x, y: x * y, P)
+        
+        return P.T, matrix
+
+
+if __name__ == '__main__':
+    '''
+    used for unit test
+    '''
+
+    v = Matrix([-1, 2, 0, -2]) / 3
+    p = Rotator(1, 2)(v)
+    print(p)
