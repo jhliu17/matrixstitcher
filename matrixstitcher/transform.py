@@ -79,7 +79,7 @@ class Add(Transform):
                 self.other + matrix
         else:
             with B.NoTape():
-                result = matrix + Matrix(self.other, matrix._dtype)
+                result = matrix + Matrix(self.other, matrix.dtype)
         return result
 
 
@@ -98,7 +98,8 @@ class Mul(Transform):
         elif isinstance(self.other, (int, float)):
             result = matrix.matrix * self.other
         else:
-            raise Exception('no defination')
+            with B.NoTape():
+                result = matrix * Matrix(self.other, dtype=matrix.dtype)
 
         result = B.copy(matrix, new_value=result, causal=True)
         return result
@@ -119,7 +120,7 @@ class Sub(Transform):
                 -1 * self.other + matrix
         else:
             with B.NoTape():
-                result = matrix - Matrix(self.other, dtype=matrix._dtype)
+                result = matrix - Matrix(self.other, dtype=matrix.dtype)
         return result
 
 
@@ -134,7 +135,7 @@ class Div(Transform):
             result = B.copy(matrix, result, causal=True)
         else:
             with B.NoTape():
-                result = matrix / Matrix(self.other)
+                result = matrix / Matrix(self.other, dtype=matrix.dtype)
         return result
 
 
@@ -150,7 +151,7 @@ class SetItem(Transform):
             matrix.matrix[self.key] = self.value.matrix
         else:
             matrix.matrix[self.key] = self.value
-        matrix = Matrix(matrix.matrix)
+        matrix = Matrix(matrix.matrix, dtype=matrix.dtype)
 
 
 class GetItem(Transform):
@@ -252,7 +253,7 @@ class Inverse(Transform):
         super().__init__(*args, **kwargs)
 
     def perform(self, matrix):
-        return F.inverse(matrix, *self._args, **self._kwargs)
+        return Matrix(F.inverse(matrix, *self._args, **self._kwargs), dtype=matrix.dtype)
 
 
 class Rank(Transform):
@@ -260,7 +261,7 @@ class Rank(Transform):
         super().__init__(*args, **kwargs)
 
     def perform(self, matrix):
-        return F.rank(matrix, *self._args, **self._kwargs)
+        return Matrix(F.rank(matrix, *self._args, **self._kwargs), dtype=matrix.dtype)
 
 
 class FrobeniusNorm(Transform):
@@ -268,7 +269,7 @@ class FrobeniusNorm(Transform):
         super().__init__(*args, **kwargs)
     
     def perform(self, matrix):
-        return Matrix(np.linalg.norm(matrix.matrix, ord='fro'))
+        return Matrix(np.linalg.norm(matrix.matrix, ord='fro'), dtype=matrix.dtype)
 
 
 class Cat(Transform):
@@ -278,7 +279,7 @@ class Cat(Transform):
     
     def perform(self, *matrix):
         matrix = np.concatenate([m.matrix for m in matrix], axis=self.axis)
-        new_matrix = Matrix(matrix)
+        new_matrix = Matrix(matrix, dtype=matrix.dtype)
         return new_matrix
 
 
@@ -287,4 +288,4 @@ class L2Norm(Transform):
         super().__init__(*args, **kwargs)
 
     def perform(self, matrix):
-        return Matrix(np.linalg.norm(matrix.matrix))
+        return Matrix(np.linalg.norm(matrix.matrix), dtype=matrix.dtype)

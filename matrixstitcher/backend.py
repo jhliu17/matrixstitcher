@@ -15,7 +15,7 @@ class Matrix(object):
 
     _direction = {'row': 0, 'column': 1}
 
-    def __init__(self, data, dtype=None):
+    def __init__(self, data, dtype=np.float64):
         try:
             if isinstance(data, np.ndarray):
                 self.matrix = data.astype(dtype)
@@ -23,10 +23,7 @@ class Matrix(object):
                 if isinstance(data, (float, int)):
                     data = [data]
 
-                if dtype is not None:
-                    self.matrix = np.array(data, dtype=dtype)
-                else:
-                    self.matrix = np.array(data)
+                self.matrix = np.array(data, dtype=dtype)
         except:
             raise Exception('data can not be converted to matrix')
         try:
@@ -68,7 +65,7 @@ class Matrix(object):
             pass
         
         self._origin_data = self.matrix.tolist()
-        self._dtype = self.matrix.dtype
+        self.dtype = self.matrix.dtype
         self.rows, self.columns = self.matrix.shape
         self.square = True if self.rows == self.columns else False
         self.shape = (self.rows, self.columns)
@@ -150,7 +147,7 @@ class Matrix(object):
                 direction = 'row' if 'row' in determined else 'column'
                 size = self.shape[self._direction[direction]]
 
-                elementary = Matrix(np.eye(size), dtype=self._dtype)
+                elementary = Matrix(np.eye(size), dtype=self.dtype)
                 with NoTape():
                     elementary = transform(elementary)
                 self.__elementary_tape[self._direction[direction]].append(elementary)
@@ -269,7 +266,7 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
 
 def copy(matrix: Matrix, new_value=None, new_type=None, causal=True, eager_copy=False):
     if isinstance(matrix, Matrix):
-        dtype = matrix._dtype if new_type is None else new_type
+        dtype = matrix.dtype if new_type is None else new_type
         if new_value is None:
             if not eager_copy:
                 new_matrix = Matrix(np.copy(matrix.matrix), dtype=dtype)

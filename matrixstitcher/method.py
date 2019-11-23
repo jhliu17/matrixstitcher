@@ -42,8 +42,8 @@ class LUFactorization(Method):
             raise Exception('Please input a square matrix')
 
         row_num = matrix.rows
-        L = Matrix(np.zeros(matrix.shape))
-        P = Matrix(np.eye(row_num))
+        L = Matrix(np.zeros(matrix.shape), dtype=matrix.dtype)
+        P = Matrix(np.eye(row_num), dtype=matrix.dtype)
 
         for i in range(1, row_num):
             
@@ -158,7 +158,7 @@ class VectorSpace(Method):
             if rank.to_scalar() < basis.columns:
                 raise Exception('Can not construct a vector space based on this basis')
         self.basis = basis
-        self.bias = Matrix(np.zeros(basis.shape), dtype=basis._dtype) if bias is None else bias
+        self.bias = Matrix(np.zeros(basis.shape), dtype=basis.dtype) if bias is None else bias
     
     @property
     def dim(self):
@@ -177,14 +177,14 @@ class GramSchmidt(Method):
     def perform(self, matrix):
         # linear independent checking
         rank = T.Rank()(matrix)
-        if rank != matrix.columns:
+        if rank.to_scalar() != matrix.columns:
             return None
         
         U = []
         u_k = matrix[:, 1]
         u_k_norm = T.L2Norm()(matrix[:, 1])
         U.append(u_k / u_k_norm)
-        R = Matrix(np.zeros((matrix.columns,) * 2))
+        R = Matrix(np.zeros((matrix.columns,) * 2), dtype=matrix.dtype)
         R[1, 1] = u_k_norm
 
         for col in range(2, matrix.columns + 1):
@@ -210,7 +210,7 @@ class Reflector(Method):
 
     def perform(self, matrix):
         row = matrix.rows
-        u = Matrix(np.zeros((row, 1)))
+        u = Matrix(np.zeros((row, 1)), dtype=matrix.dtype)
         u[self.dim] = 1
 
         u = matrix - T.L2Norm()(matrix).to_scalar() * u
@@ -233,7 +233,7 @@ class Rotator(Method):
         c = x_i / x
         s = x_j / x
 
-        rotator = Matrix(np.eye(row))
+        rotator = Matrix(np.eye(row), dtype=matrix.dtype)
         rotator[self.i, self.i] = c
         rotator[self.i, self.j] = s
         rotator[self.j, self.i] = -s
@@ -249,13 +249,13 @@ class HouseHolder(Method):
     def perform(self, matrix):
         # linear independent checking
         rank = T.Rank()(matrix)
-        if rank != matrix.columns:
+        if rank.to_scalar() != matrix.columns:
             return None
 
         R = []
         for i in range(1, matrix.columns):
             sub_matrix = matrix[i:, i:]
-            r = Matrix(np.eye(matrix.rows))
+            r = Matrix(np.eye(matrix.rows), dtype=matrix.dtype)
             r[i:, i:] = Reflector()(sub_matrix[:, 1])
             matrix = r * matrix
             R.append(r)
@@ -272,7 +272,7 @@ class Givens(Method):
     def perform(self, matrix):
         # linear independent checking
         rank = T.Rank()(matrix)
-        if rank != matrix.columns:
+        if rank.to_scalar() != matrix.columns:
             return None
 
         P = []
@@ -280,7 +280,7 @@ class Givens(Method):
             sub_matrix = matrix[i:, i:]
 
             for j in range(2, sub_matrix.rows + 1):
-                p = Matrix(np.eye(matrix.rows))
+                p = Matrix(np.eye(matrix.rows), dtype=matrix.dtype)
                 p[i:, i:] = Rotator(1, j)(sub_matrix[:, 1])
                 matrix = p * matrix
                 P.append(p)
