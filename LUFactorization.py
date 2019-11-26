@@ -16,7 +16,7 @@ if __name__ == '__main__':
         P, L, U = LUFactorization()(A)
     
     print('The second column of A:\n', A[:, 2], sep='')
-    print('\n', '*'*80, sep='')
+    print('\n', '*' * 80, sep='')
     print('Execution Path:')
     result = A.forward(display=display_execution)
     

@@ -90,7 +90,12 @@ class Mul(Transform):
     
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
-            result = matrix.matrix @ self.other.matrix
+            if self.other.shape == (1, 1):
+                with B.NoTape():
+                    result = matrix * self.other.to_scalar()
+                    result = result.matrix
+            else:
+                result = matrix.matrix @ self.other.matrix
             
             # binary operation tape
             with B.LazyPerform():

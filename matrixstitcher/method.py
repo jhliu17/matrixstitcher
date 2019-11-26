@@ -69,7 +69,7 @@ class LUFactorization(Method):
                     matrix = matrix.apply(T.RowTransform(i, -k, j))
                     L[j, i] = k # generate L's element
         
-        L = L + np.eye(L.rows)
+        L = L + np.eye(L.rows, dtype=matrix.dtype)
         U = matrix
         return P, L, U
 
@@ -176,7 +176,8 @@ class GramSchmidt(Method):
 
     def perform(self, matrix):
         # linear independent checking
-        rank = T.Rank()(matrix)
+        with B.NoTape():
+            rank = T.Rank()(matrix)
         if rank.to_scalar() != matrix.columns:
             return None
         
@@ -228,10 +229,10 @@ class Rotator(Method):
         row = matrix.rows
         x_i = matrix[self.i].to_scalar()
         x_j = matrix[self.j].to_scalar()
-        x = (x_i ** 2 + x_j ** 2) ** 0.5
+        x_norm = (x_i ** 2 + x_j ** 2) ** 0.5
         
-        c = x_i / x
-        s = x_j / x
+        c = x_i / x_norm
+        s = x_j / x_norm
 
         rotator = Matrix(np.eye(row), dtype=matrix.dtype)
         rotator[self.i, self.i] = c
@@ -248,7 +249,8 @@ class HouseHolder(Method):
     
     def perform(self, matrix):
         # linear independent checking
-        rank = T.Rank()(matrix)
+        with B.NoTape():
+            rank = T.Rank()(matrix)
         if rank.to_scalar() != matrix.columns:
             return None
 
@@ -271,15 +273,16 @@ class Givens(Method):
     
     def perform(self, matrix):
         # linear independent checking
-        rank = T.Rank()(matrix)
+        with B.NoTape():
+            rank = T.Rank()(matrix)
         if rank.to_scalar() != matrix.columns:
             return None
 
         P = []
         for i in range(1, matrix.columns):
-            sub_matrix = matrix[i:, i:]
-
-            for j in range(2, sub_matrix.rows + 1):
+            reduction_row = matrix[i:, i:].rows
+            for j in range(2, reduction_row + 1):
+                sub_matrix = matrix[i:, i:]
                 p = Matrix(np.eye(matrix.rows), dtype=matrix.dtype)
                 p[i:, i:] = Rotator(1, j)(sub_matrix[:, 1])
                 matrix = p * matrix
