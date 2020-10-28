@@ -28,16 +28,11 @@ with mats.TransformTape(): # tape all the transforms
     P, L, U = LUFactorization()(A) # apply LU Factorization on matrix A and get the factorization results
 
 # show the execution state of the matrix A
-print('The second column of A:\n', A[:, 2], sep='')
 print('Execution Path:')
 result = A.forward(display=True)
 ```
 Here is the execution result:
 ```
-The second column of A:
-array([[ 2.],
-       [ 8.],
-       [ 3.]])
 Execution Path:
 -> Origin matrix:
 array([[ 1.,  2., -3.],
