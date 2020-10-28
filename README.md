@@ -1,12 +1,14 @@
 # Matrix Stitcher
 
-A numpy wrapper for learning matrix analysis that combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your transformations applied on the origin matrix. It is a naive final project for Matrix Analysis and Applications course in UCAS including `PLU Factorization` (Gaussian elimination), `QR Factorization` (GramSchmidt, HouseHolder, and Givens).
+A matrix numpy wrapper for education purpose which combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your transformations applied to the original matrix. It is a naive final project for Matrix Analysis and Applications course in UCAS including `PLU Factorization` (Gaussian elimination), `QR Factorization` (GramSchmidt, HouseHolder, and Givens).
+
 
 ## Features
-- Intuitive implementation for educational purpose
+- Intuitive implementation for education purpose
 - Index from 1 which is consistent with the mathematical declaration
-- Dynamicaly track the transformations applied on the orgin matrix
+- Dynamicaly track the transformations applied to the orgin matrix
 - Easily extend your transforms and methods
+
 
 ## Quick Guide
 ```python
@@ -56,11 +58,6 @@ array([[ 1.,  2., -3.],
 array([[ 1.,  2., -3.],
        [ 0., -1.,  8.],
        [ 0.,  0., 24.]])
-
--> Stage 4, RowTransform(2, 0.0, 3):
-array([[ 1.,  2., -3.],
-       [ 0., -1.,  8.],
-       [ 0.,  0., 24.]])
 ```
 
 If you don't want to track the transformations, applying your method outside the context of `TransformTape()` would be helpful.
@@ -81,6 +78,7 @@ A.forward(display=True)
 #        [ 2.,  3.,  2.]])
 ```
 You can get the same factorization results P, L, U. But the transformations would not be recorded into A's tape history.
+
 
 ## Extend Transform and Method
 
