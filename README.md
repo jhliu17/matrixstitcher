@@ -11,6 +11,7 @@ A matrix numpy wrapper for education purpose which combines the advantage of eag
 
 
 ## Quick Guide
+
 ```python
 import numpy as np
 import matrixstitcher as mats 
@@ -31,6 +32,7 @@ with mats.TransformTape(): # tape all the transforms
 print('Execution Path:')
 result = A.forward(display=True)
 ```
+
 Here is the execution result:
 ```
 Execution Path:
@@ -55,7 +57,7 @@ array([[ 1.,  2., -3.],
        [ 0.,  0., 24.]])
 ```
 
-If you don't want to track the transformations, applying your method outside the context of `TransformTape()` would be helpful.
+If you don't want to track the transformations, applying your method outside the context of `TransformTape()`.
 ```python
 import matrixstitcher as mats 
 
