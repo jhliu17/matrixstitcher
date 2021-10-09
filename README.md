@@ -1,6 +1,6 @@
 # Matrix Stitcher
 
-An elementary-transform tape system for matrix analysi dducation purpose which combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your transformations applied to the original matrix. It is a naive final project for Matrix Analysis and Applications course in UCAS including `PLU Factorization` (Gaussian elimination), `QR Factorization` (GramSchmidt, HouseHolder, and Givens).
+An elementary-transform tape system for matrix analysis education purpose which combines the advantage of eager and lazy execution. It runs dynamically and automatically tracks your transformations applied to the original matrix. It is a naive final project for Matrix Analysis and Applications course in UCAS including `PLU Factorization` (Gaussian elimination), `QR Factorization` (GramSchmidt, HouseHolder, and Givens).
 
 
 ## Features
