@@ -7,7 +7,7 @@ from matrixstitcher.backend import Matrix
 class Method:
     def __init__(self):
         self.tape = True
-    
+
     def __call__(self, *matrix):
         matrix = self.__build(*matrix)
 
@@ -17,7 +17,7 @@ class Method:
             with B.no_tape():
                 result = self.perform(*matrix)
         return result
-    
+
     def __build(self, *matrixs):
         return_matrix = []
         for matrix in matrixs:
@@ -27,7 +27,7 @@ class Method:
 
     def no_tape(self):
         self.tape = False
-    
+
     def tape(self):
         self.tape = True
 
@@ -35,9 +35,9 @@ class Method:
 class LUFactorization(Method):
     def __init__(self):
         super().__init__()
-    
+
     def perform(self, matrix):
-        
+
         if not matrix.square:
             raise Exception('Please input a square matrix')
 
@@ -46,7 +46,7 @@ class LUFactorization(Method):
         P = Matrix(np.eye(row_num), dtype=matrix.dtype)
 
         for i in range(1, row_num):
-            
+
             # check and change the pivot
             non_zero = i
             while matrix[non_zero, i].to_scalar() == 0.0:
@@ -59,7 +59,7 @@ class LUFactorization(Method):
                 matrix = row_swap(matrix)
                 P = row_swap(P)
                 L = row_swap(L)
-            
+
             # reduce row echelon form
             pivot = matrix[i, i].to_scalar()
             for j in range(i+1, row_num+1):
@@ -67,8 +67,8 @@ class LUFactorization(Method):
                 if k != 0.0:
                     k /= pivot
                     matrix = matrix.apply(T.RowTransform(i, -k, j))
-                    L[j, i] = k # generate L's element
-        
+                    L[j, i] = k  # generate L's element
+
         L = L + np.eye(L.rows, dtype=matrix.dtype)
         U = matrix
         return P, L, U
@@ -79,7 +79,7 @@ class LeastSquareTech(Method):
         super().__init__()
         self.parameter = None
         self.error = None
-    
+
     def perform(self, X, y):
         self.parameter = T.Inverse()(X.T * X) * X.T * y
         self.error = (self.predict(X) - y).T * (self.predict(X) - y)
@@ -115,7 +115,7 @@ class REF(Method):
             else:
                 if non_zero != i:
                     matrix = matrix.apply(T.RowSwap(i, non_zero))
-            
+
             # reduce row echelon form
             pivot = matrix[i, j].to_scalar()
             for ii in range(i + 1, row_num + 1):
@@ -132,16 +132,16 @@ class REF(Method):
 class SolveLinear(Method):
     def __init__(self):
         super().__init__()
-    
+
     def perform(self, A, b):
-        A_rref = RREF()(A)
+        A_REF = REF()(A)
         Arg = B.cat([A, b], axis=-1)
-        Arg_rref = RREF()(Arg)
+        Arg_REF = REF()(Arg)
 
-        A_rank = np.sum(np.sum(A_rref.matrix, axis=-1) > 0)
-        Arg_rank = np.sum(np.sum(Arg_rref.matrix, axis=-1) > 0)
+        A_rank = np.sum(np.sum(A_REF.matrix, axis=-1) > 0)
+        Arg_rank = np.sum(np.sum(Arg_REF.matrix, axis=-1) > 0)
 
-        if A_rank != argument_rank:
+        if A_rank != Arg_rank:
             print('No solution')
             return None
         elif A_rank == A.columns:
@@ -159,11 +159,11 @@ class VectorSpace(Method):
                 raise Exception('Can not construct a vector space based on this basis')
         self.basis = basis
         self.bias = Matrix(np.zeros(basis.shape), dtype=basis.dtype) if bias is None else bias
-    
+
     @property
     def dim(self):
-        rref = RREF()(self.basis)
-        rank = np.sum(np.sum(rref.matrix, axis=-1) > 0)
+        ref = REF()(self.basis)
+        rank = np.sum(np.sum(ref.matrix, axis=-1) > 0)
         return rank
 
     def perform(self, x):
@@ -180,7 +180,7 @@ class GramSchmidt(Method):
             rank = T.Rank()(matrix)
         if rank.to_scalar() != matrix.columns:
             return None
-        
+
         U = []
         u_k = matrix[:, 1]
         u_k_norm = T.L2Norm()(matrix[:, 1])
@@ -196,11 +196,11 @@ class GramSchmidt(Method):
                 c_k = (x_k.T * u).to_scalar()
                 R[row, col] = c_k
                 u_k -= c_k * u
-            
+
             u_k_norm = T.L2Norm()(u_k)
             U.append(u_k / u_k_norm)
             R[row + 1, col] = u_k_norm
-            
+
         return T.Cat(axis=-1)(*U), R
 
 
@@ -230,7 +230,7 @@ class Rotator(Method):
         x_i = matrix[self.i].to_scalar()
         x_j = matrix[self.j].to_scalar()
         x_norm = (x_i ** 2 + x_j ** 2) ** 0.5
-        
+
         c = x_i / x_norm
         s = x_j / x_norm
 
@@ -246,7 +246,7 @@ class Rotator(Method):
 class HouseHolder(Method):
     def __init__(self):
         super().__init__()
-    
+
     def perform(self, matrix):
         # linear independent checking
         with B.NoTape():
@@ -270,7 +270,7 @@ class HouseHolder(Method):
 class Givens(Method):
     def __init__(self):
         super().__init__()
-    
+
     def perform(self, matrix):
         # linear independent checking
         with B.NoTape():
@@ -287,10 +287,10 @@ class Givens(Method):
                 p[i:, i:] = Rotator(1, j)(sub_matrix[:, 1])
                 matrix = p * matrix
                 P.append(p)
-        
+
         from functools import reduce
         P = reduce(lambda x, y: x * y, P[::-1])
-        
+
         return P.T, matrix
 
 

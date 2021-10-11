@@ -1,7 +1,7 @@
 import numpy as np
-from functools import wraps
 import matrixstitcher.backend as B
 import matrixstitcher.function as F
+
 from matrixstitcher.backend import Matrix
 
 
@@ -17,7 +17,7 @@ class Transform:
         self.tape = True
         self.eager = False
         self.causal = True
-        
+
     def __call__(self, *matrix):
         matrix = self.__build(*matrix)
         if not self.lazy_perform:
@@ -68,12 +68,12 @@ class Add(Transform):
     def __init__(self, other):
         super().__init__(other)
         self.other = other
-    
+
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             result = matrix.matrix + self.other.matrix
             result = B.copy(matrix, new_value=matrix.matrix + self.other.matrix, causal=True)
-            
+
             # binary operation tape
             with B.LazyPerform():
                 self.other + matrix
@@ -87,7 +87,7 @@ class Mul(Transform):
     def __init__(self, other):
         super().__init__(other)
         self.other = other
-    
+
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             if self.other.shape == (1, 1):
@@ -96,7 +96,7 @@ class Mul(Transform):
                     result = result.matrix
             else:
                 result = matrix.matrix @ self.other.matrix
-            
+
             # binary operation tape
             with B.LazyPerform():
                 self.other * matrix
@@ -114,12 +114,12 @@ class Sub(Transform):
     def __init__(self, other):
         super().__init__(other)
         self.other = other
-    
+
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             result = matrix.matrix - self.other.matrix
             result = B.copy(matrix, result, causal=True)
-            
+
             # binary operation tape
             with B.LazyPerform():
                 -1 * self.other + matrix
@@ -133,7 +133,7 @@ class Div(Transform):
     def __init__(self, other):
         super().__init__(other)
         self.other = other
-    
+
     def perform(self, matrix):
         if isinstance(self.other, Matrix):
             result = matrix.matrix / self.other.matrix
@@ -174,7 +174,7 @@ class AsType(Transform):
     def __init__(self, new_type):
         super().__init__(new_type)
         self.new_type = new_type
-    
+
     def perform(self, matrix):
         return B.copy(matrix, new_type=self.new_type, causal=True)
 
@@ -272,7 +272,7 @@ class Rank(Transform):
 class FrobeniusNorm(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+
     def perform(self, matrix):
         return Matrix(np.linalg.norm(matrix.matrix, ord='fro'), dtype=matrix.dtype)
 
@@ -281,7 +281,7 @@ class Cat(Transform):
     def __init__(self, axis: int = -1):
         super().__init__(axis=axis)
         self.axis = axis
-    
+
     def perform(self, *matrix):
         matrix = np.concatenate([m.matrix for m in matrix], axis=self.axis)
         new_matrix = Matrix(matrix, dtype=matrix.dtype)

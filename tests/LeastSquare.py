@@ -1,9 +1,8 @@
-import numpy as np
-import matrixstitcher as mats
-from matrixstitcher.transform import Inverse
-from matrixstitcher.method import LeastSquareTech
 import matplotlib.pyplot as plt
+import numpy as np
 
+import matrixstitcher as mats
+from matrixstitcher.method import LeastSquareTech
 
 x = np.array(list(range(-5, 6)))
 y = np.array([2, 7, 9, 12, 13, 14, 14, 13, 10, 8, 4])

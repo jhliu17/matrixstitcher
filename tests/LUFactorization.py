@@ -1,5 +1,4 @@
-import numpy as np
-import matrixstitcher as mats 
+import matrixstitcher as mats
 from matrixstitcher.method import LUFactorization
 
 
@@ -14,12 +13,12 @@ if __name__ == '__main__':
 
     with mats.TransformTape():
         P, L, U = LUFactorization()(A)
-    
+
     print('The second column of A:\n', A[:, 2], sep='')
     print('\n', '*' * 80, sep='')
     print('Execution Path:')
     result = A.forward(display=display_execution)
-    
+
     print('\n', '*'*80, sep='')
     print('The LU Factorization result:')
     print('P:\n', P, sep='')

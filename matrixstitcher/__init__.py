@@ -1,1 +1,1 @@
-from matrixstitcher.backend import *
+from matrixstitcher.backend import *  # noqa

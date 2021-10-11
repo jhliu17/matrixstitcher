@@ -1,6 +1,5 @@
 import numpy as np
-import matrixstitcher.function as F 
-from functools import reduce
+
 from copy import deepcopy
 
 
@@ -9,7 +8,7 @@ __all__ = ['Matrix', 'get_transform_template', 'TransformTape', 'LazyPerform', '
 
 class Matrix(object):
     '''
-    A base object of matrix including the most of the functional support for 
+    A base object of matrix including the most of the functional support for
     taping, operations, and transformations.
     '''
 
@@ -34,7 +33,7 @@ class Matrix(object):
         '''
         Auto determined:
 
-        Auto determined some property like the shape, square etc. 
+        Auto determined some property like the shape, square etc.
         See function update for more details.
         '''
         self.update()
@@ -63,7 +62,7 @@ class Matrix(object):
             self.matrix = np.reshape(self.matrix, [rows, columns])
         else:
             pass
-        
+
         self._origin_data = self.matrix.tolist()
         self.dtype = self.matrix.dtype
         self.rows, self.columns = self.matrix.shape
@@ -72,7 +71,7 @@ class Matrix(object):
 
     def get_origin(self):
         return np.array(self._origin_data, dtype=self._dtype)
-    
+
     def reshape(self, shape):
         from matrixstitcher.transform import Reshape
         return Reshape(shape)(self)
@@ -86,7 +85,7 @@ class Matrix(object):
             key = index_mechanism(*key)
         else:
             key = index_mechanism(*[key])
-        return GetItem(key)(self)   
+        return GetItem(key)(self)
 
     def __setitem__(self, key, value):
         from matrixstitcher.transform import SetItem
@@ -94,7 +93,7 @@ class Matrix(object):
             key = index_mechanism(*key)
         else:
             key = index_mechanism(*[key])
-        return SetItem(key, value)(self)        
+        return SetItem(key, value)(self)
 
     def __add__(self, other):
         from matrixstitcher.transform import Add
@@ -103,7 +102,7 @@ class Matrix(object):
     def __radd__(self, other):
         from matrixstitcher.transform import Add
         return Add(other)(self)
-    
+
     def __mul__(self, other):
         from matrixstitcher.transform import Mul
         return Mul(other)(self)
@@ -111,11 +110,11 @@ class Matrix(object):
     def __rmul__(self, other):
         from matrixstitcher.transform import Mul
         return Mul(other)(self)
-    
+
     def __sub__(self, other):
         from matrixstitcher.transform import Sub
         return Sub(other)(self)
-    
+
     def __rsub__(self, other):
         from matrixstitcher.transform import Sub, Mul
         return Mul(-1)(Sub(other)(self))
@@ -123,7 +122,7 @@ class Matrix(object):
     def __truediv__(self, other):
         from matrixstitcher.transform import Div
         return Div(other)(self)
-    
+
     def __rtruediv__(self, other):
         raise Exception('({}, {}) matrix can not be divded by a scalar'.format(self.rows, self.columns))
 
@@ -136,7 +135,7 @@ class Matrix(object):
     @property
     def T(self):
         from matrixstitcher.transform import Transpose
-        return Transpose()(self) 
+        return Transpose()(self)
 
     def update_tape(self, transform, *args, **kwargs):
         transform_name = transform.__class__.__name__
@@ -151,13 +150,13 @@ class Matrix(object):
                 with NoTape():
                     elementary = transform(elementary)
                 self.__elementary_tape[self._direction[direction]].append(elementary)
-        
+
         self.__tape.append(transform)
         self.__tape_hist.append(get_transform_template(transform_name, *args, **kwargs))
 
     def elementary(self):
         return self.__elementary_tape[0][::-1], self.__elementary_tape[1]
-    
+
     def get_elementary(self):
         return self.__elementary_tape
 
@@ -166,7 +165,7 @@ class Matrix(object):
 
     def set_elementary(self, args):
         self.__elementary_tape = args
-        
+
     def set_transform_tape(self, *args):
         self.__tape = args[0]
         self.__tape_hist = args[1]
@@ -176,12 +175,12 @@ class Matrix(object):
 
         with NoTape():
             result = self.apply(pipeline, display=display, forward=True)
-        
+
         # Manual operation
         new_matrix = copy(self, new_value=result.matrix)
         result = new_matrix
         return result
-        
+
     def apply(self, *args, **kwargs):
         return apply_pipeline(self, *args, **kwargs)
 
@@ -205,7 +204,7 @@ class Matrix(object):
         self.__tape_hist = []
         return self
 
-        
+
 def index_mechanism(*key):
     new_key = []
     # key = tuple(i - 1 if not isinstance(i, slice) else slice_mechanism(i) for i in key)
@@ -245,7 +244,7 @@ def apply_pipeline(matrix: Matrix, pipeline, display=False, forward=False):
         done_pipeline = 0
     else:
         done_pipeline = len(matrix.get_transform_tape()[0])
-    
+
     if isinstance(pipeline, Transform):
         pipeline = [pipeline]
 
@@ -274,7 +273,7 @@ def copy(matrix: Matrix, new_value=None, new_type=None, causal=True, eager_copy=
                 new_matrix = Matrix(matrix.matrix, dtype=dtype)
         else:
             new_matrix = Matrix(new_value, dtype=dtype)
-        
+
         # Manual operation
         if causal:
             new_matrix.set_elementary(matrix.get_elementary())
@@ -291,7 +290,7 @@ class NoTape:
         from matrixstitcher.transform import Transform
         self.prev = Transform.is_tape_enabled()
         Transform.set_tape_enabled(False)
-    
+
     def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_tape_enabled(self.prev)
@@ -302,7 +301,7 @@ class TransformTape:
         from matrixstitcher.transform import Transform
         self.prev = Transform.is_tape_enabled()
         Transform.set_tape_enabled(True)
-    
+
     def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_tape_enabled(self.prev)
@@ -313,7 +312,7 @@ class LazyPerform:
         from matrixstitcher.transform import Transform
         self.prev = Transform.is_lazy_perform()
         Transform.set_lazy_perform(True)
-    
+
     def __exit__(self, *args):
         from matrixstitcher.transform import Transform
         Transform.set_lazy_perform(self.prev)
