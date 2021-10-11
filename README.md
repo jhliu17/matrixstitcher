@@ -10,19 +10,31 @@ An elementary-transform tape system for matrix analysis education purpose which 
 - Easily extend your transforms and methods
 
 
+## Installation
+
+``` shell
+# clone the project
+git clone git@github.com:jhliu17/MatrixStitcher.git
+cd MatrixStitcher
+
+# install via pip
+pip install .
+```
+
+
 ## Quick Guide
 
 ```python
 import numpy as np
-import matrixstitcher as mats 
+import matrixstitcher as mats
 from matrixstitcher.method import LUFactorization
 
-# you can define matrix using int, float, list, 
+# you can define matrix using int, float, list,
 # tuple and numpy array
-A = [[1, 2, -3], 
-     [4, 8, 12], 
-     [2, 3, 2]] 
-     
+A = [[1, 2, -3],
+     [4, 8, 12],
+     [2, 3, 2]]
+
 A = mats.Matrix(A, dtype=np.float) # get the matrix object from MatrixStitcher
 
 with mats.TransformTape(): # tape all the transforms
@@ -59,7 +71,7 @@ array([[ 1.,  2., -3.],
 
 If you don't want to track the transformations, applying your method outside the context of `TransformTape()`.
 ```python
-import matrixstitcher as mats 
+import matrixstitcher as mats
 
 # construct data ...
 
@@ -90,7 +102,7 @@ from matrixstitcher.transform import Tranform
 class Rank(Transform):
     def __init__(self, *args, **kwargs):
         '''
-        In order to represent your transform correctly, you must 
+        In order to represent your transform correctly, you must
         tell the base object the parameters you have used.
         '''
         super().__init__(*args, **kwargs)
@@ -106,11 +118,11 @@ class LeastSquareTech(Method):
         `Transform`s
         '''
         super().__init__()
-        self.tape = False # setting whether the transformations 
-                          # used under this method would be tracked 
+        self.tape = False # setting whether the transformations
+                          # used under this method would be tracked
         self.parameter = None
         self.error = None
-    
+
     def perform(self, X, y): # you must finish `perform` function
         self.parameter = T.Inverse()(X.T * X) * X.T * y
         self.error = (self.predict(X) - y).T * (self.predict(X) - y)
