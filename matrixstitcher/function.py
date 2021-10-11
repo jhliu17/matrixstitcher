@@ -89,11 +89,9 @@ def inverse(matrix):
         except:
             raise Exception('Matrix is noninvertible')
         else:
-            matrix.matrix = inv
-            matrix.update()
+            return inv
     else:
         raise Exception('Unsquare matrix is noninvertible')
-    return matrix
 
 
 def rank(matrix):
