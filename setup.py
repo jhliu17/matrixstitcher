@@ -6,7 +6,7 @@ with open("README.md", 'r') as f:
 
 setup(
    name='matrixstitcher',
-   version='0.2.1',
+   version='0.2.2',
    description='An Elementary-transform Tape System for Linear Algebra Education Purpose',
    license="MIT",
    long_description=long_description,
